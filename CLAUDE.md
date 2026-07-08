@@ -141,6 +141,28 @@ as plain LoRA and must **not** be run through `merge.py`.
   (`APISettings`, see `.env.template`) and holds an `ImageGenerationService` in app state.
 - Gradio lives in `gradio/` and imports from the installed `cogkit` package.
 
+## Apple Silicon (MPS) lane
+
+Branch `apple-silicon-mps` adds single-device Mac training (plan/history:
+`APPLE_METAL_PORT_PLAN.md`). Key facts:
+
+- `strategy: "SINGLE"` = no FSDP/DDP wrap; still launched via **torchrun at
+  `--nproc_per_node=1`** over a `gloo` process group (DCP checkpointing and the rank
+  helpers depend on it). Launch: `quickstart/scripts/t2i/start_train_mps.sh`
+  (`config_mps.yaml`). `COGKIT_DEVICE` env forces the device (`cpu` = parity oracle);
+  otherwise auto-detect cuda → mps → cpu in `finetune/utils/dist.py::get_device`.
+- QLoRA (`low_vram: true`) and FSDP strategies **hard-error on non-CUDA**
+  (`BaseTrainer._check_device_compat`). bitsandbytes is platform-conditional in
+  `pyproject.toml` (no macOS wheel); the `BitsAndBytesConfig` in each `lora_trainer.py`
+  must stay lazily constructed inside the `low_vram` branch.
+- Video is unsupported on this lane: torchvision ≥0.23 removed `VideoReader`, so the
+  dataset modules guard that import (type-annotation use only) and `cv2` is imported
+  lazily. t2v/i2v fail loudly at use-time.
+- **Correctness rule:** bf16/fp16 on MPS can be silently wrong. A completed run is not
+  evidence — only CPU parity is (`tests/test_mps_cpu_parity.py`, heavy, needs cached
+  weights + the precompute cache). Unit lane tests: `tests/test_single_device_lane.py`.
+- A dead torchrun can leave port 29501 held: `lsof -ti :29501 | xargs kill -9`.
+
 ## Conventions
 
 - **ruff** (line length 100, double quotes) + **mypy** are enforced via pre-commit;

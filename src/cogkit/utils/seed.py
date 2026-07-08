@@ -15,4 +15,4 @@ def set_global_seed(seed: int) -> None:
         torch.backends.cudnn.benchmark = False
 
     if torch.backends.mps.is_available():
-        torch.backends.mps.manual_seed(seed)
+        torch.mps.manual_seed(seed)

@@ -12,29 +12,12 @@ twin of the finetrainers MPS port; that plan and its lessons are the primary pri
 
 ## Scoping decisions
 
-| Decision        | Value                                                                                                               | Consequence                                                                                                                                 |
-| --------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Target hardware | M-series **64 GB+** (Max/Ultra)                                                                                     | Memory is tight but workable; lean on the existing precompute-caching + `UNLOAD_LIST` offload rather than new offload machinery in phase 1. |
-| First model     | **CogVideoX-2B `cogvideox-t2v` LoRA** — ⚠️ **PROPOSED, confirm with Eric before Phase 1** (alt: `cogview4-6b` LoRA) | See "First-model choice" below — this is the one genuinely open decision.                                                                   |
-| Goal            | **Correctness first**                                                                                               | One model training _correctly_ on MPS end-to-end, verified against a CPU oracle. Speed/memory tuning is an explicit later phase.            |
-| Parallelism     | **Single-process, `world_size=1`**                                                                                  | Do **not** try to run FSDP/NCCL on MPS. Carve out a clean single-device lane; the `strategy: "DDP"` path is the closest existing hook.      |
-
-### First-model choice (the one thing to lock before starting)
-
-CogKit registers two families (see `finetune/diffusion/models/*/`):
-
-- **`cogview4-6b`** (image, t2i) — **only** CogView model; simplest data path (**no video
-  decode → dodges the decord/av-on-Mac landmine entirely**), but a **6B** transformer +
-  the **GLM** text encoder (large). Precompute caching means the text encoder/VAE run once
-  during caching then unload, so steady-state train memory is ~transformer + activations.
-- **`cogvideox-t2v` / `cogvideox-i2v`** (video) — the **2B** originals are the smallest
-  transformers in the repo, but video adds temporal VAE + `.mp4` decode (`av`/decord),
-  which is exactly where finetrainers hit Mac-specific breakage.
-
-**Recommendation:** start with **`cogview4-6b` LoRA** _if_ the 64GB box can hold it (image
-path is far simpler to get numerically correct and to CPU-verify); fall back to
-**`cogvideox-t2v` 2B LoRA** if memory forces it, accepting the video-decode work. Confirm
-with Eric, then delete this note and lock the row above.
+| Decision        | Value                                                    | Consequence                                                                                                                                 |
+| --------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Target hardware | M-series **64 GB+** (Max/Ultra)                          | Memory is tight but workable; lean on the existing precompute-caching + `UNLOAD_LIST` offload rather than new offload machinery in phase 1. |
+| First model     | **`cogview4-6b` LoRA** — ✅ confirmed by Eric 2026-07-08 | Image path: no video decode, simplest to CPU-verify. Fallback if memory forces it: `cogvideox-t2v` 2B LoRA.                                 |
+| Goal            | **Correctness first**                                    | One model training _correctly_ on MPS end-to-end, verified against a CPU oracle. Speed/memory tuning is an explicit later phase.            |
+| Parallelism     | **Single-process, `world_size=1`**                       | Do **not** try to run FSDP/NCCL on MPS. Carve out a clean single-device lane; the `strategy: "DDP"` path is the closest existing hook.      |
 
 ---
 
