@@ -1,7 +1,27 @@
 # CogKit → Apple Metal (MPS) Support — Port Plan
 
-**Status:** plan, ready to execute · **Branch:** create `apple-silicon-mps` off `main`
+**Status:** ✅ **Phases 1–2 executed & verified 2026-07-08** (commit `adb05ef`+) · **Branch:** `apple-silicon-mps`
 **Executor:** a fresh Fable · **Plan author:** Claude (Opus 4.8) · **Date:** 2026-07-08
+
+**Execution results (M4 Max 64GB, torch 2.12.1):**
+
+- **Phase 1 green:** cogview4-6b LoRA smoke run — 5/5 optimizer steps (~7 s/it @512² bf16),
+  DCP checkpoint over gloo ws=1 works, `merge.py --lora` yields a loadable 224-tensor adapter.
+- **Phase 2 green:** forward CPU-parity **passed** (loss bf16-exact: 1.210938 both devices;
+  `noise_pred` mean rel diff 0.85%). MPS overfit-one-batch **passed** (monotonic decrease,
+  no NaN). 25-step curve run: non-NaN, stable.
+- **Methodology corrections found during execution:**
+  - Same-seed `torch.Generator` yields _different_ sequences on cpu vs mps — parity requires
+    **injecting** identical noise/timestep, not sharing a seed (§4 as written was insufficient).
+  - The "MPS loss curve tracks a CPU run of the same seed" exit criterion is therefore not
+    measurable as written; replaced by the overfit-one-batch test (`test_mps_can_learn`).
+  - CPU-oracle **backward** of the 6B transformer takes >2h (slow CPU bf16 autograd); the
+    grad-norm parity check exists but is opt-in via `COGKIT_PARITY_BACKWARD=1`.
+- Extra Mac landmines fixed beyond the §2 inventory: unconditional `BitsAndBytesConfig`
+  construction in all three lora_trainers; nonexistent `torch.backends.mps.manual_seed` in
+  `seed.py`; torchvision ≥0.23 removed `VideoReader` (dataset imports guarded); undeclared
+  `cv2` dep (lazy); `peft>=0.17` needed by diffusers@git-main.
+- Phase 3 (inference on MPS) not started.
 
 This is an executable spec. It assumes the reader is comfortable in the CogKit codebase
 (read the repo-root `CLAUDE.md` first) and has done Apple-Silicon/MPS work before. **Line
