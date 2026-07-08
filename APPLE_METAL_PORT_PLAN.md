@@ -1,7 +1,27 @@
 # CogKit → Apple Metal (MPS) Support — Port Plan
 
-**Status:** plan, ready to execute · **Branch:** create `apple-silicon-mps` off `main`
+**Status:** ✅ **Phases 1–2 executed & verified 2026-07-08** (commit `adb05ef`+) · **Branch:** `apple-silicon-mps`
 **Executor:** a fresh Fable · **Plan author:** Claude (Opus 4.8) · **Date:** 2026-07-08
+
+**Execution results (M4 Max 64GB, torch 2.12.1):**
+
+- **Phase 1 green:** cogview4-6b LoRA smoke run — 5/5 optimizer steps (~7 s/it @512² bf16),
+  DCP checkpoint over gloo ws=1 works, `merge.py --lora` yields a loadable 224-tensor adapter.
+- **Phase 2 green:** forward CPU-parity **passed** (loss bf16-exact: 1.210938 both devices;
+  `noise_pred` mean rel diff 0.85%). MPS overfit-one-batch **passed** (monotonic decrease,
+  no NaN). 25-step curve run: non-NaN, stable.
+- **Methodology corrections found during execution:**
+  - Same-seed `torch.Generator` yields _different_ sequences on cpu vs mps — parity requires
+    **injecting** identical noise/timestep, not sharing a seed (§4 as written was insufficient).
+  - The "MPS loss curve tracks a CPU run of the same seed" exit criterion is therefore not
+    measurable as written; replaced by the overfit-one-batch test (`test_mps_can_learn`).
+  - CPU-oracle **backward** of the 6B transformer takes >2h (slow CPU bf16 autograd); the
+    grad-norm parity check exists but is opt-in via `COGKIT_PARITY_BACKWARD=1`.
+- Extra Mac landmines fixed beyond the §2 inventory: unconditional `BitsAndBytesConfig`
+  construction in all three lora_trainers; nonexistent `torch.backends.mps.manual_seed` in
+  `seed.py`; torchvision ≥0.23 removed `VideoReader` (dataset imports guarded); undeclared
+  `cv2` dep (lazy); `peft>=0.17` needed by diffusers@git-main.
+- Phase 3 (inference on MPS) not started.
 
 This is an executable spec. It assumes the reader is comfortable in the CogKit codebase
 (read the repo-root `CLAUDE.md` first) and has done Apple-Silicon/MPS work before. **Line
@@ -12,29 +32,12 @@ twin of the finetrainers MPS port; that plan and its lessons are the primary pri
 
 ## Scoping decisions
 
-| Decision        | Value                                                                                                               | Consequence                                                                                                                                 |
-| --------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Target hardware | M-series **64 GB+** (Max/Ultra)                                                                                     | Memory is tight but workable; lean on the existing precompute-caching + `UNLOAD_LIST` offload rather than new offload machinery in phase 1. |
-| First model     | **CogVideoX-2B `cogvideox-t2v` LoRA** — ⚠️ **PROPOSED, confirm with Eric before Phase 1** (alt: `cogview4-6b` LoRA) | See "First-model choice" below — this is the one genuinely open decision.                                                                   |
-| Goal            | **Correctness first**                                                                                               | One model training _correctly_ on MPS end-to-end, verified against a CPU oracle. Speed/memory tuning is an explicit later phase.            |
-| Parallelism     | **Single-process, `world_size=1`**                                                                                  | Do **not** try to run FSDP/NCCL on MPS. Carve out a clean single-device lane; the `strategy: "DDP"` path is the closest existing hook.      |
-
-### First-model choice (the one thing to lock before starting)
-
-CogKit registers two families (see `finetune/diffusion/models/*/`):
-
-- **`cogview4-6b`** (image, t2i) — **only** CogView model; simplest data path (**no video
-  decode → dodges the decord/av-on-Mac landmine entirely**), but a **6B** transformer +
-  the **GLM** text encoder (large). Precompute caching means the text encoder/VAE run once
-  during caching then unload, so steady-state train memory is ~transformer + activations.
-- **`cogvideox-t2v` / `cogvideox-i2v`** (video) — the **2B** originals are the smallest
-  transformers in the repo, but video adds temporal VAE + `.mp4` decode (`av`/decord),
-  which is exactly where finetrainers hit Mac-specific breakage.
-
-**Recommendation:** start with **`cogview4-6b` LoRA** _if_ the 64GB box can hold it (image
-path is far simpler to get numerically correct and to CPU-verify); fall back to
-**`cogvideox-t2v` 2B LoRA** if memory forces it, accepting the video-decode work. Confirm
-with Eric, then delete this note and lock the row above.
+| Decision        | Value                                                    | Consequence                                                                                                                                 |
+| --------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Target hardware | M-series **64 GB+** (Max/Ultra)                          | Memory is tight but workable; lean on the existing precompute-caching + `UNLOAD_LIST` offload rather than new offload machinery in phase 1. |
+| First model     | **`cogview4-6b` LoRA** — ✅ confirmed by Eric 2026-07-08 | Image path: no video decode, simplest to CPU-verify. Fallback if memory forces it: `cogvideox-t2v` 2B LoRA.                                 |
+| Goal            | **Correctness first**                                    | One model training _correctly_ on MPS end-to-end, verified against a CPU oracle. Speed/memory tuning is an explicit later phase.            |
+| Parallelism     | **Single-process, `world_size=1`**                       | Do **not** try to run FSDP/NCCL on MPS. Carve out a clean single-device lane; the `strategy: "DDP"` path is the closest existing hook.      |
 
 ---
 

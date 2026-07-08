@@ -3,13 +3,24 @@ import math
 from pathlib import Path
 from typing import Callable
 
-import cv2
 import numpy as np
 import torch
 from filelock import FileLock
 from PIL import Image
 from safetensors.torch import load_file, save_file
-from torchvision.io import VideoReader
+
+try:
+    from torchvision.io import VideoReader
+except ImportError:
+    # torchvision >= 0.23 removed the video API; only used as a type here, so video
+    # training degrades to a loud failure at use-time instead of breaking every import
+    class VideoReader:
+        def __init__(self, *args, **kwargs) -> None:
+            raise ImportError(
+                "torchvision.io.VideoReader is unavailable in this torchvision build; "
+                "video (t2v/i2v) training is not supported in this environment"
+            )
+
 
 from cogkit.finetune.logger import get_logger
 
@@ -38,6 +49,9 @@ def load_images(image_path: Path) -> list[Path]:
 
 
 def load_images_from_videos(videos_path: list[Path]) -> list[Path]:
+    # video-only (i2v) helper; cv2 is not a declared dependency, so import lazily
+    import cv2
+
     first_frames_dir = videos_path[0].parent.parent / "first_frames"
     first_frames_dir.mkdir(exist_ok=True)
 

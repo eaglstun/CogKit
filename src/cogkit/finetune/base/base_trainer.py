@@ -92,6 +92,7 @@ class BaseTrainer(ABC):
         self.lr_scheduler = None
 
         self.state = self._init_state()
+        self._check_device_compat()
         self.components = self.load_components()
         self.tracker = None
         if self.uargs.report_to is not None:
@@ -102,8 +103,25 @@ class BaseTrainer(ABC):
         self.check_setting()
 
     def _init_distributed(self) -> None:
-        dist.init_process_group(backend="nccl", timeout=self.uargs.nccl_timeout)
-        torch.cuda.set_device(get_local_rank())
+        # NCCL is CUDA-only; MPS/CPU runs use gloo at world_size=1 (torchrun is still the launcher)
+        backend = "nccl" if get_device().type == "cuda" else "gloo"
+        dist.init_process_group(backend=backend, timeout=self.uargs.nccl_timeout)
+        if torch.cuda.is_available():
+            torch.cuda.set_device(get_local_rank())
+
+    def _check_device_compat(self) -> None:
+        # Must run before load_components: the low_vram path imports bitsandbytes (CUDA-only)
+        device_type = self.state.device.type
+        if device_type != "cuda" and self.uargs.low_vram:
+            raise ValueError(
+                f"low_vram (QLoRA via bitsandbytes NF4) requires CUDA and is not supported on "
+                f"'{device_type}'. Set `low_vram: false` and use `mixed_precision: bf16` instead."
+            )
+        if device_type != "cuda" and self.uargs.strategy != "SINGLE":
+            raise ValueError(
+                f"strategy '{self.uargs.strategy}' (FSDP/DDP) requires CUDA and is not supported "
+                f"on '{device_type}'. Use `strategy: SINGLE` for single-device (MPS/CPU) training."
+            )
 
     def _init_directories(self) -> None:
         mkdir(self.uargs.output_dir)
@@ -188,7 +206,10 @@ class BaseTrainer(ABC):
             case "HYBRID_SHARD":
                 sharding_strategy = ShardingStrategy.HYBRID_SHARD
 
-        if self.uargs.strategy != "DDP":
+        if self.uargs.strategy == "SINGLE":
+            # Single-device lane (MPS/CPU or a lone GPU): no FSDP/DDP wrapping at all
+            self.components.transformer = self.components.transformer.to(self.state.device)
+        elif self.uargs.strategy != "DDP":
             warp_policy = partial(
                 size_based_auto_wrap_policy,
                 min_num_params=int(1e8),
@@ -272,7 +293,7 @@ class BaseTrainer(ABC):
         self.state.train_epochs = math.ceil(self.state.train_steps / num_update_steps_per_epoch)
         self.state.num_update_steps_per_epoch = num_update_steps_per_epoch
 
-        memory_statistics = get_memory_statistics(self.logger)
+        memory_statistics = get_memory_statistics(self.state.device)
         self.logger.info(f"Memory before training start: {json.dumps(memory_statistics, indent=4)}")
 
         self.state.total_batch_size_count = (
@@ -354,7 +375,11 @@ class BaseTrainer(ABC):
     def train_step(self, batch: dict[str, Any], sync_grad: bool) -> dict[str, Any]:
         logs = {}
 
-        sync_context = self.components.transformer.no_sync() if not sync_grad else nullcontext()
+        # SINGLE keeps the bare module (no .no_sync()); there is no gradient sync to defer
+        if self.uargs.strategy == "SINGLE" or sync_grad:
+            sync_context = nullcontext()
+        else:
+            sync_context = self.components.transformer.no_sync()
 
         with sync_context:
             loss = self.compute_loss(batch)
@@ -362,22 +387,24 @@ class BaseTrainer(ABC):
             loss.backward()
 
         if sync_grad:
-            if self.uargs.strategy != "DDP":
-                grad_norm = self.components.transformer.clip_grad_norm_(
-                    max_norm=self.uargs.max_grad_norm
-                )
-            else:
+            if self.uargs.strategy in ("DDP", "SINGLE"):
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     self.components.transformer.parameters(),
                     max_norm=self.uargs.max_grad_norm,
+                )
+            else:
+                grad_norm = self.components.transformer.clip_grad_norm_(
+                    max_norm=self.uargs.max_grad_norm
                 )
             self.optimizer.step()
             self.lr_scheduler.step()
             self.optimizer.zero_grad()
 
             loss = loss.detach()
-            dist.all_reduce(grad_norm.to(self.state.device), op=dist.ReduceOp.AVG)
-            dist.all_reduce(loss.to(self.state.device), op=dist.ReduceOp.AVG)
+            # gloo cannot all_reduce MPS tensors; at world_size=1 the AVG is a no-op anyway
+            if get_world_size() > 1:
+                dist.all_reduce(grad_norm.to(self.state.device), op=dist.ReduceOp.AVG)
+                dist.all_reduce(loss.to(self.state.device), op=dist.ReduceOp.AVG)
 
             logs["grad_norm"] = grad_norm.item()
             logs["loss"] = loss.item()

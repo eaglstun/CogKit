@@ -300,9 +300,10 @@ class DiffusionTrainer(BaseTrainer):
         dist.barrier()
         # =======================================
 
-        memory_statistics = get_memory_statistics(self.logger)
+        memory_statistics = get_memory_statistics(self.state.device)
         self.logger.info(f"Memory after validation end: {json.dumps(memory_statistics, indent=4)}")
-        torch.cuda.reset_peak_memory_stats(self.state.device)
+        if self.state.device.type == "cuda":
+            torch.cuda.reset_peak_memory_stats(self.state.device)
 
         torch.set_grad_enabled(True)
         self.components.transformer.train()

@@ -33,12 +33,6 @@ class Cogview4Trainer(DiffusionTrainer):
 
     @override
     def load_components(self) -> DiffusionComponents:
-        nf4_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type="nf4",
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_compute_dtype=torch.bfloat16,
-        )
         dtype = self.state.weight_dtype
 
         components = DiffusionComponents()
@@ -65,6 +59,13 @@ class Cogview4Trainer(DiffusionTrainer):
                 torch_dtype=dtype,
             )
         else:
+            # constructing the config already requires bitsandbytes (CUDA-only), so build it lazily
+            nf4_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_compute_dtype=torch.bfloat16,
+            )
             components.transformer = CogView4Transformer2DModel.from_pretrained(
                 model_path,
                 subfolder="transformer",

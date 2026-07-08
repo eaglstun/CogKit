@@ -32,8 +32,9 @@ class BaseArgs(BaseModel):
 
     ########## Training #########
     training_type: Literal["lora", "sft"] = "lora"
+    # "SINGLE" runs the model on one device (MPS/CPU or a lone GPU) with no FSDP/DDP wrapping
     strategy: Literal[
-        "DDP", "SHARD_GRAD_OP", "FULL_SHARD", "HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"
+        "SINGLE", "DDP", "SHARD_GRAD_OP", "FULL_SHARD", "HYBRID_SHARD", "_HYBRID_SHARD_ZERO2"
     ] = "FULL_SHARD"
     # This will offload model param and grads to CPU memory to save GPU memory, but will slow down training
     offload_params_grads: bool = False
@@ -112,8 +113,8 @@ class BaseArgs(BaseModel):
 
     @field_validator("strategy")
     def validate_strategy(cls, v: str, info: ValidationInfo) -> str:
-        if info.data.get("training_type") == "lora" and v != "DDP":
-            raise ValueError("When using lora training_type, strategy must be 'DDP'")
+        if info.data.get("training_type") == "lora" and v not in ("DDP", "SINGLE"):
+            raise ValueError("When using lora training_type, strategy must be 'DDP' or 'SINGLE'")
         return v
 
     @field_validator("offload_params_grads")
@@ -124,8 +125,10 @@ class BaseArgs(BaseModel):
             raise ValueError(
                 "offload_params_grads and no_grad_sync_when_accumulating cannot be enabled simultaneously"
             )
-        if v and info.data.get("strategy") == "DDP":
-            raise ValueError("offload_params_grads cannot be enabled when strategy is 'DDP'")
+        if v and info.data.get("strategy") in ("DDP", "SINGLE"):
+            raise ValueError(
+                "offload_params_grads cannot be enabled when strategy is 'DDP' or 'SINGLE'"
+            )
         return v
 
     @field_validator("no_grad_sync_when_accumulating")
@@ -134,9 +137,9 @@ class BaseArgs(BaseModel):
             raise ValueError(
                 "offload_params_grads and no_grad_sync_when_accumulating cannot be enabled simultaneously"
             )
-        if v and info.data.get("strategy") == "DDP":
+        if v and info.data.get("strategy") in ("DDP", "SINGLE"):
             raise ValueError(
-                "no_grad_sync_when_accumulating cannot be enabled when strategy is 'DDP'"
+                "no_grad_sync_when_accumulating cannot be enabled when strategy is 'DDP' or 'SINGLE'"
             )
         return v
 

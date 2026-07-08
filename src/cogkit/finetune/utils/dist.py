@@ -27,7 +27,15 @@ def get_local_rank() -> int:
 
 
 def get_device() -> torch.device:
-    return torch.device(f"cuda:{get_local_rank()}")
+    # COGKIT_DEVICE overrides auto-detection (e.g. `cpu` for parity runs against MPS)
+    override = os.environ.get("COGKIT_DEVICE")
+    if override:
+        return torch.device(override)
+    if torch.cuda.is_available():
+        return torch.device(f"cuda:{get_local_rank()}")
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
 
 
 def gather_object(object: Any) -> list[Any]:

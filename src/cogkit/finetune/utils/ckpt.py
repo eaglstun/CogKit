@@ -66,7 +66,11 @@ class AppState(Stateful):
         if self.lora:
             from peft.utils.save_and_load import _insert_adapter_name_into_state_dict
             from cogkit.utils.lora import _ADAPTER_NAME
-            from peft.utils.constants import PEFT_TYPE_TO_PREFIX_MAPPING
+
+            try:
+                from peft.mapping import PEFT_TYPE_TO_PREFIX_MAPPING  # peft >= 0.15
+            except ImportError:
+                from peft.utils.constants import PEFT_TYPE_TO_PREFIX_MAPPING
 
             state_dict["model"] = _insert_adapter_name_into_state_dict(
                 state_dict["model"],

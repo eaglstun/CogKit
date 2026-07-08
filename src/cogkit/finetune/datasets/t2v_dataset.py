@@ -6,7 +6,20 @@ from datasets import load_dataset
 from safetensors.torch import load_file, save_file
 from torch.utils.data import Dataset
 from torchvision import transforms
-from torchvision.io import VideoReader
+
+try:
+    from torchvision.io import VideoReader
+except ImportError:
+    # torchvision >= 0.23 removed the video API; only used as a type here, so video
+    # training degrades to a loud failure at use-time instead of breaking every import
+    class VideoReader:
+        def __init__(self, *args, **kwargs) -> None:
+            raise ImportError(
+                "torchvision.io.VideoReader is unavailable in this torchvision build; "
+                "video (t2v/i2v) training is not supported in this environment"
+            )
+
+
 from typing_extensions import override
 
 from cogkit.finetune.logger import get_logger
