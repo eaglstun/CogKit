@@ -14,6 +14,29 @@ Visit our [Docs](https://thudm.github.io/CogKit) to start.
 
 - Easy-to-use Interface: Offers multiple easy-to-use inference options, including a CLI, OpenAI-compatible API server, and interactive Gradio-based UIs for both training and inference.
 
+## Apple Silicon (MPS) — this fork
+
+This fork adds a single-device Apple Silicon training lane (verified on an M4 Max 64GB:
+cogview4-6b LoRA trains correctly on MPS, CPU-parity checked). Plan/history in
+`APPLE_METAL_PORT_PLAN.md`; working notes in `CLAUDE.md`.
+
+```bash
+# setup (uv; bitsandbytes is skipped automatically on macOS)
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python torch torchvision
+uv pip install --python .venv/bin/python -e ".[finetune]" pytest
+
+# train (t2i, cogview4-6b LoRA)
+cd quickstart/scripts/t2i
+bash start_train_mps.sh          # torchrun ws=1, strategy: SINGLE, bf16
+
+# verify numerics against the CPU oracle (~6 min) + overfit check
+.venv/bin/python -m pytest tests/test_mps_cpu_parity.py -q -s
+```
+
+Not supported on MPS: QLoRA (`low_vram`), FSDP strategies, and video (t2v/i2v) training —
+all fail loudly with pointers. Inference on MPS is not wired up yet (Phase 3).
+
 ## Roadmap
 
 - [ ] Add support for CogView4 ControlNet model

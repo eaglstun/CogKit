@@ -143,8 +143,10 @@ as plain LoRA and must **not** be run through `merge.py`.
 
 ## Apple Silicon (MPS) lane
 
-Branch `apple-silicon-mps` adds single-device Mac training (plan/history:
-`APPLE_METAL_PORT_PLAN.md`). Key facts:
+This fork supports single-device Mac training (merged to `main` 2026-07-08; developed on
+`apple-silicon-mps`, plan/history: `APPLE_METAL_PORT_PLAN.md`). **Status: Phases 1–2 done
+— cogview4-6b LoRA verified correct on MPS. Phase 3 (inference on MPS) is the next piece
+of work.** Env: `.venv` built with uv (not PDM), Python 3.12. Key facts:
 
 - `strategy: "SINGLE"` = no FSDP/DDP wrap; still launched via **torchrun at
   `--nproc_per_node=1`** over a `gloo` process group (DCP checkpointing and the rank
