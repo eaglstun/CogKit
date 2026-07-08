@@ -2,19 +2,19 @@
 
 ## Setup
 
-* Please refer to the [installation guide](../02-Installation.md) to setup your environment first
+- Please refer to the [installation guide](../02-Installation.md) to setup your environment first
 
-* Install finetune dependencies:
+- Install finetune dependencies:
 
-   ```bash
-   pip install "cogkit[finetune]@git+https://github.com/THUDM/CogKit.git"
-   ```
+  ```bash
+  pip install "cogkit[finetune]@git+https://github.com/THUDM/CogKit.git"
+  ```
 
-* We provide various training scripts and example datasets in the `CogKit/quickstart` directory. Please clone the repository before training:
+- We provide various training scripts and example datasets in the `CogKit/quickstart` directory. Please clone the repository before training:
 
-   ```bash
-   git clone https://github.com/THUDM/CogKit.git
-   ```
+  ```bash
+  git clone https://github.com/THUDM/CogKit.git
+  ```
 
 ## Data
 
@@ -47,11 +47,11 @@ We recommend that you read the corresponding [model card](../05-Model%20Card.mdx
 ### Merge Checkpoint
 
 After fine-tuning, you need to use the `merge.py` script to merge the distributed checkpoint weights into a single checkpoint (**except for QLoRA fine-tuning**).
-The script can be found in the `quickstart/tools/converters` directory.
+The script can be found in the `tools/converters` directory.
 For example:
 
 ```bash
-cd quickstart/tools/converters
+cd tools/converters
 python merge.py --checkpoint_dir ckpt/ --output_dir output_dir/
 # Add --lora option if you are using LoRA fine-tuning
 ```
