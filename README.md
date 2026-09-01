@@ -34,8 +34,20 @@ bash start_train_mps.sh          # torchrun ws=1, strategy: SINGLE, bf16
 .venv/bin/python -m pytest tests/test_mps_cpu_parity.py -q -s
 ```
 
+CogView4 inference supports MPS through model offload (recommended) or direct unified-memory
+placement:
+
+```bash
+PYTORCH_ENABLE_MPS_FALLBACK=1 cogkit inference "a prompt" THUDM/CogView4-6B \
+  --load_type cpu_model_offload --output_file out.png
+
+# Higher startup residency; useful for explicit full-pipeline placement experiments.
+PYTORCH_ENABLE_MPS_FALLBACK=1 cogkit inference "a prompt" THUDM/CogView4-6B \
+  --load_type mps --output_file out.png
+```
+
 Not supported on MPS: QLoRA (`low_vram`), FSDP strategies, and video (t2v/i2v) training —
-all fail loudly with pointers. Inference on MPS is not wired up yet (Phase 3).
+all fail loudly with pointers. CogVideo inference has not yet been validated on MPS.
 
 ## Roadmap
 

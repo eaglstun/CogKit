@@ -16,6 +16,7 @@ _logger = get_logger(__name__)
 class ImageGenerationService(object):
     def __init__(self, settings: APISettings) -> None:
         self._models = {}
+        self._load_type = settings.offload_type
 
         # TODO: Refactor this to switch by LoRA endpoint API
         self._current_lora = {}  # Track currently loaded LORA for each model
@@ -81,6 +82,7 @@ class ImageGenerationService(object):
             guidance_scale=guidance_scale,
             num_images_per_prompt=num_images,
             output_type="np",
+            load_type=self._load_type,
         )
 
         image_lst = self.postprocess(output)

@@ -4,6 +4,8 @@ from typing import Any
 import torch
 import torch.distributed as dist
 
+from cogkit.utils.device import get_device as resolve_device
+
 
 def check_distributed() -> None:
     if not dist.is_initialized():
@@ -27,15 +29,8 @@ def get_local_rank() -> int:
 
 
 def get_device() -> torch.device:
-    # COGKIT_DEVICE overrides auto-detection (e.g. `cpu` for parity runs against MPS)
-    override = os.environ.get("COGKIT_DEVICE")
-    if override:
-        return torch.device(override)
-    if torch.cuda.is_available():
-        return torch.device(f"cuda:{get_local_rank()}")
-    if torch.backends.mps.is_available():
-        return torch.device("mps")
-    return torch.device("cpu")
+    local_rank = None if os.environ.get("COGKIT_DEVICE") else get_local_rank()
+    return resolve_device(local_rank=local_rank)
 
 
 def gather_object(object: Any) -> list[Any]:

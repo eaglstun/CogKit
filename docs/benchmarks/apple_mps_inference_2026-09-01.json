@@ -1,0 +1,83 @@
+{
+  "recorded_at": "2026-09-01T11:14:28-06:00",
+  "cogkit_commit": "bd98a9b9bb74535d80f556a6b73b3a8a7ef1bec0",
+  "host": {
+    "model": "MacBook Pro Mac16,5",
+    "chip": "Apple M4 Max",
+    "cpu_cores": 16,
+    "memory_gb": 64,
+    "os": "macOS 26.5.2",
+    "os_build": "25F84"
+  },
+  "shared_dependencies": {
+    "diffusers": "0.40.0.dev0",
+    "transformers": "4.57.6",
+    "accelerate": "1.14.0"
+  },
+  "runtimes": {
+    "baseline": {
+      "torch": "2.12.1",
+      "torch_git": "7269437d655783a26cba32aa88195b741ff496aa",
+      "torchvision": "0.27.1"
+    },
+    "fork": {
+      "torch": "2.15.0a0+gitcfca6b6",
+      "torch_git": "cfca6b65486c97a2388977af003fe6446e123088",
+      "torchvision": "0.30.0a0+ac8d215"
+    }
+  },
+  "benchmarks": [
+    {
+      "name": "synthetic_transformer_scheduler_512",
+      "runtime": "baseline",
+      "cpu_seconds": 134.66,
+      "mps_seconds": 5.27,
+      "pytest_seconds": 144.13,
+      "noise_mre": 0.074905,
+      "noise_nrmse": 0.076724,
+      "noise_cosine": 0.997058,
+      "latent_mre": 0.026034,
+      "latent_nrmse": 0.026835,
+      "latent_cosine": 0.999640
+    },
+    {
+      "name": "synthetic_transformer_scheduler_512",
+      "runtime": "fork",
+      "cpu_seconds": 124.44,
+      "mps_seconds": 6.56,
+      "pytest_seconds": 136.02,
+      "noise_mre": 0.074056,
+      "noise_nrmse": 0.075892,
+      "noise_cosine": 0.997122,
+      "latent_mre": 0.025729,
+      "latent_nrmse": 0.026562,
+      "latent_cosine": 0.999647
+    },
+    {
+      "name": "real_prompt_transformer_scheduler_512",
+      "runtime": "baseline",
+      "cpu_seconds": 139.35,
+      "mps_seconds": 23.31,
+      "pytest_seconds": 168.18,
+      "noise_mre": 0.024561,
+      "noise_nrmse": 0.025268,
+      "noise_cosine": 0.999681,
+      "latent_mre": 0.069126,
+      "latent_nrmse": 0.061329,
+      "latent_cosine": 0.998123
+    },
+    {
+      "name": "real_prompt_transformer_scheduler_512",
+      "runtime": "fork",
+      "cpu_seconds": 130.35,
+      "mps_seconds": 20.86,
+      "pytest_seconds": 157.17,
+      "noise_mre": 0.024056,
+      "noise_nrmse": 0.024732,
+      "noise_cosine": 0.999694,
+      "latent_mre": 0.067750,
+      "latent_nrmse": 0.060071,
+      "latent_cosine": 0.998203
+    }
+  ]
+}
