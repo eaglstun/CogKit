@@ -2,6 +2,7 @@
 
 
 from .diffusion_pipeline import get_pipeline_meta
+from .device import get_device
 from .dtype import cast_to_torch_dtype
 from .lora import (
     load_lora_checkpoint,
@@ -19,6 +20,7 @@ from .seed import set_global_seed
 
 __all__ = [
     "get_pipeline_meta",
+    "get_device",
     "cast_to_torch_dtype",
     "load_lora_checkpoint",
     "unload_lora_checkpoint",

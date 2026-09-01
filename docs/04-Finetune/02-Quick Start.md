@@ -42,6 +42,21 @@ We recommend that you read the corresponding [model card](../05-Model%20Card.mdx
    bash start_train.sh
    ```
 
+### Apple Silicon (MPS)
+
+For CogView4-6B LoRA training on Apple Silicon, use the supplied single-device config and
+launcher:
+
+```bash
+cd quickstart/scripts/t2i
+bash start_train_mps.sh
+```
+
+Do not substitute the regular CUDA config. The MPS recipe uses `strategy: "SINGLE"`,
+disables QLoRA and pinned memory, and launches one `gloo` process through `torchrun`.
+See the [Apple Silicon guide](../06-Apple-Silicon.md) for setup, limitations, and parity
+testing.
+
 ## Load Fine-tuned Model
 
 ### Merge Checkpoint

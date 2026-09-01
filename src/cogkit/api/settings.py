@@ -4,6 +4,8 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Literal
 
+from cogkit.types import LoadType
+
 
 class APISettings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -12,9 +14,7 @@ class APISettings(BaseSettings):
     _supported_models: tuple[str, ...] = ("cogview-4",)
 
     dtype: Literal["bfloat16", "float32"] = "bfloat16"
-    offload_type: Literal["cuda", "cpu_model_offload", "sequential_cpu_offload"] = (
-        "cpu_model_offload"
-    )
+    offload_type: LoadType = "cpu_model_offload"
 
     # cogview-4 related settings
     cogview4_path: str | None = None

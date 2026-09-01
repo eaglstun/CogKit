@@ -5,6 +5,13 @@
 
 Before starting fine-tuning, please ensure your machine meets the minimum hardware requirements listed in the tables below. The tables show the minimum VRAM requirements for different models under various configurations (test on 8xA100).
 
+:::note Apple Silicon
+This fork also supports single-device CogView4-6B LoRA training on Apple Silicon through
+the MPS backend. The CUDA VRAM figures below do not translate directly to unified memory.
+QLoRA, FSDP, and CogVideo training are not supported on MPS. See the
+[Apple Silicon guide](../06-Apple-Silicon.md) for the tested configuration and launch path.
+:::
+
 ## CogVideo Series
 
 <table style={{ textAlign: "center" }}>

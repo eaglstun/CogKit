@@ -12,4 +12,7 @@ Please refer to the [Model Card](./05-Model%20Card.mdx) for more details.
 
 ## Environment Testing
 
-This repository has been tested in environments with 8×A100 GPUs, using CUDA 12.4, Python 3.10.16.
+The upstream CUDA lane has been tested with 8×A100 GPUs, CUDA 12.4, and Python 3.10.16.
+This fork also has an Apple Silicon lane tested on an M4 Max with 64 GB unified memory and
+Python 3.12. See the [Apple Silicon guide](./06-Apple-Silicon.md) for its narrower support
+matrix.

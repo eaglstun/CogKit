@@ -13,6 +13,8 @@ from cogkit.utils import (
 )
 from diffusers import DiffusionPipeline
 
+from cogkit.types import LoadType
+
 from .util import before_generation, guess_resolution
 
 _logger = get_logger(__name__)
@@ -23,7 +25,7 @@ def generate_image(
     pipeline: DiffusionPipeline,
     num_images_per_prompt: int = 1,
     output_type: Literal["pil", "pt", "np"] = "pil",
-    load_type: Literal["cuda", "cpu_model_offload", "sequential_cpu_offload"] = "cpu_model_offload",
+    load_type: LoadType = "cpu_model_offload",
     height: int | None = None,
     width: int | None = None,
     num_inference_steps: int = 50,
@@ -43,7 +45,8 @@ def generate_image(
         - num_images_per_prompt: Number of images to generate per prompt. Defaults to 1.
         - output_type: Format of the output images. Options are "pil" (PIL.Image), "pt" (PyTorch tensor), or
             "np" (NumPy array). Defaults to "pil".
-        - load_type: Type of offloading to use for the model, use "cuda" if you have enough GPU memory. Defaults to "cpu_model_offload".
+        - load_type: Device or offloading strategy used for the model. Defaults to
+            "cpu_model_offload".
         - height: Desired height of the output images in pixels. If None, inferred from the pipeline.
         - width: Desired width of the output images in pixels. If None, inferred from the pipeline.
         - num_inference_steps: Number of denoising steps during generation. Defaults to 50.

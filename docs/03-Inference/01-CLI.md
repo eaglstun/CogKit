@@ -26,7 +26,6 @@ Global options:
 
 The `inference` command allows you to generate images or videos:
 
-
 ```bash
 # Generate an image from text
 cogkit inference "a beautiful sunset over mountains" "THUDM/CogView4-6B"
@@ -37,6 +36,30 @@ cogkit inference "a cat playing with a ball" "THUDM/CogVideoX1.5-5B"
 # Controlling image generation from text
 cogkit inference "a dog" "THUDM/CogView4-6B-Control"
 ```
+
+### Device Placement and Offload
+
+Use `--load_type` to select where the pipeline runs:
+
+| Value                    | Behavior                                                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cpu_model_offload`      | Moves model components between CPU and the detected accelerator as needed. This is the default and the recommended Apple Silicon starting point. |
+| `sequential_cpu_offload` | Offloads at finer granularity to reduce accelerator residency further, with additional transfer overhead.                                        |
+| `cuda`                   | Places the complete pipeline directly on CUDA and fails if CUDA is unavailable.                                                                  |
+| `mps`                    | Places the complete pipeline directly on Apple Silicon MPS and fails if MPS is unavailable.                                                      |
+
+For example, CogView4 image inference on Apple Silicon can use model offload:
+
+```bash
+PYTORCH_ENABLE_MPS_FALLBACK=1 cogkit inference \
+  "a beautiful sunset over mountains" \
+  "THUDM/CogView4-6B" \
+  --load_type cpu_model_offload \
+  --output_file output.png
+```
+
+See the [Apple Silicon guide](../06-Apple-Silicon.md) for direct MPS placement, current
+support boundaries, and correctness notes.
 
 :::tip
 See `cogkit inference --help` for more information.
@@ -51,14 +74,14 @@ To configure the model paths:
 1. Create a `.env` file in your working directory
 2. Refer to the [environment template](https://github.com/THUDM/CogKit/blob/main/.env.template) and add needed environment variables to specify model paths. For example, to serve `CogView4-6B` as a service, you must specify `COGVIEW4_PATH` in your `.env` file:
 
-    ```bash
-    # /your/workdir/.env
+   ```bash
+   # /your/workdir/.env
 
-    COGVIEW4_PATH="THUDM/CogView4-6B"  # or local path
-    # other variables...
-    ```
+   COGVIEW4_PATH="THUDM/CogView4-6B"  # or local path
+   # other variables...
+   ```
 
-Then starts a API server, for example:
+Then start the API server, for example:
 
 ```bash
 cogkit launch
@@ -67,7 +90,6 @@ cogkit launch
 :::tip
 See `cogkit launch --help` for more information.
 :::
-
 
 ### Client Interfaces
 

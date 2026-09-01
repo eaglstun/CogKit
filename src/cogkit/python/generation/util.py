@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Literal
-
+import torch
 from diffusers import (
     CogVideoXDPMScheduler,
     CogVideoXImageToVideoPipeline,
@@ -9,6 +8,9 @@ from diffusers import (
     CogView4ControlPipeline,
     CogView4Pipeline,
 )
+
+from cogkit.types import LoadType
+from cogkit.utils import get_device
 
 TVideoPipeline = CogVideoXPipeline | CogVideoXImageToVideoPipeline
 TPipeline = CogView4Pipeline | TVideoPipeline
@@ -137,20 +139,30 @@ def guess_frames(pipeline: TVideoPipeline, frames: int | None = None) -> tuple[i
 
 def before_generation(
     pipeline: TPipeline,
-    load_type: Literal["cuda", "cpu_model_offload", "sequential_cpu_offload"] = "cpu_model_offload",
+    load_type: LoadType = "cpu_model_offload",
 ) -> None:
     if isinstance(pipeline, TVideoPipeline):
         pipeline.scheduler = CogVideoXDPMScheduler.from_config(
             pipeline.scheduler.config, timestep_spacing="trailing"
         )
 
-    # turns off offload if you have multiple GPUs or enough GPU memory(such as H100) and it will cost less time in inference
-    if load_type == "cuda":
-        pipeline.to("cuda")
+    if load_type in ("cuda", "mps"):
+        if load_type == "cuda" and not torch.cuda.is_available():
+            raise RuntimeError("CUDA inference was requested, but CUDA is not available")
+        if load_type == "mps" and not torch.backends.mps.is_available():
+            raise RuntimeError("MPS inference was requested, but MPS is not available")
+        pipeline.remove_all_hooks()
+        pipeline.to(load_type)
     elif load_type == "cpu_model_offload":
-        pipeline.enable_model_cpu_offload()
+        device = get_device()
+        if device.type == "cpu":
+            raise RuntimeError("CPU model offload requires a CUDA or MPS accelerator")
+        pipeline.enable_model_cpu_offload(device=device)
     elif load_type == "sequential_cpu_offload":
-        pipeline.enable_sequential_cpu_offload()
+        device = get_device()
+        if device.type == "cpu":
+            raise RuntimeError("Sequential CPU offload requires a CUDA or MPS accelerator")
+        pipeline.enable_sequential_cpu_offload(device=device)
     else:
         raise ValueError(f"Unsupported offload type: {load_type}")
     if hasattr(pipeline, "vae"):

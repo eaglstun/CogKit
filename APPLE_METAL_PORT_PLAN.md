@@ -1,6 +1,7 @@
 # CogKit → Apple Metal (MPS) Support — Port Plan
 
-**Status:** ✅ **Phases 1–2 executed & verified 2026-07-08** (commit `adb05ef`+) · **Branch:** `apple-silicon-mps`
+**Status:** ✅ **Phases 1–2 executed & verified 2026-07-08** (commit `adb05ef`+) ·
+🚧 **Phase 3 started 2026-08-31** on `apple-silicon-mps-inference`
 **Executor:** a fresh Fable · **Plan author:** Claude (Opus 4.8) · **Date:** 2026-07-08
 
 **Execution results (M4 Max 64GB, torch 2.12.1):**
@@ -21,7 +22,17 @@
   construction in all three lora_trainers; nonexistent `torch.backends.mps.manual_seed` in
   `seed.py`; torchvision ≥0.23 removed `VideoReader` (dataset imports guarded); undeclared
   `cv2` dep (lazy); `peft>=0.17` needed by diffusers@git-main.
-- Phase 3 (inference on MPS) not started.
+- **Phase 3 first slice green on torch 2.12.1:** explicit `mps` placement and MPS-targeted
+  model/sequential CPU offload are wired through the CLI and API. A cached CogView4-6B
+  one-step 512² smoke test passes in both modes. `cpu_model_offload` remains the default:
+  one observed run finished in 44.44 s total (27.72 s denoising), while direct `mps` took
+  155.15 s total (38.55 s denoising) because full-pipeline placement dominated startup.
+- **Local PyTorch fork matrix pending:** `/Users/eeaglstun/Documents/dev/pytorch` is built
+  as torch `2.15.0a0+gitc521c70` with MPS, but its Python 3.14 environment cannot currently
+  resolve CogKit's inference dependency set. A fresh install also exposed drift in the
+  unpinned Diffusers `main` dependency; the tested CogKit environment uses Diffusers commit
+  `b8905b9b0f01d2df8738ae967d5c02c502f0d3e5`. The comparison needs a Python 3.12 build of
+  the fork plus a frozen, compatible inference dependency set.
 
 This is an executable spec. It assumes the reader is comfortable in the CogKit codebase
 (read the repo-root `CLAUDE.md` first) and has done Apple-Silicon/MPS work before. **Line
@@ -134,6 +145,11 @@ Wire the `cogkit inference` / `python/generation` path to MPS (`load_type`/offlo
 differ — there's no `cpu_model_offload`-to-CUDA assumption to satisfy). Lower risk than
 training; can be done in parallel. See §5.
 
+**First slice, 2026-08-31:** explicit device routing, CLI/API propagation, unit coverage,
+and opt-in real-model smoke coverage are implemented on `apple-silicon-mps-inference`.
+Numerical parity for the inference-specific text encode → scheduler → denoise → VAE decode
+path remains the correctness gate before Phase 3 is complete.
+
 ### Phase 4+ (out of scope now)
 
 Memory optimization, packing on MPS, multi-model generalization, speed. Do **not** start
@@ -174,6 +190,30 @@ Separate, simpler surface from training. Entry points: `cogkit inference` (CLI) 
 sequential_cpu_offload}` — add/enable an `mps` path and make the default offload choice
 sane for unified memory. Grep `cogkit/python` and `cogkit/utils` for `"cuda"` / `.cuda()`
 / `device_map` assumptions. No distributed concerns here.
+
+The first slice keeps `cpu_model_offload` as the Apple default and passes `device="mps"`
+explicitly to Diffusers. Direct `--load_type mps` is supported as an opt-in. The reusable
+runtime test is:
+
+```bash
+COGKIT_RUN_MPS_INFERENCE=1 PYTORCH_ENABLE_MPS_FALLBACK=1 \
+  .venv/bin/python -m pytest -q -s \
+  tests/test_inference_mps.py::test_cogview4_real_model_mps_smoke
+
+# Direct full-pipeline placement:
+COGKIT_RUN_MPS_INFERENCE=1 COGKIT_MPS_LOAD_TYPE=mps \
+  PYTORCH_ENABLE_MPS_FALLBACK=1 .venv/bin/python -m pytest -q -s \
+  tests/test_inference_mps.py::test_cogview4_real_model_mps_smoke
+```
+
+Run the same test under the local PyTorch fork once it has a CogKit-compatible Python
+environment; the test prints the Torch source/version plus Diffusers and Transformers
+versions so results cannot be accidentally attributed to the wrong runtime.
+
+The first 512² one-step parity probe measured 2.603% mean relative error in the
+post-scheduler latent (CPU 440.59 s, MPS 59.97 s). The test now captures pre-scheduler
+`noise_pred` separately so the next quiet-window run can distinguish transformer drift
+from scheduler amplification; that follow-up run is pending.
 
 ---
 

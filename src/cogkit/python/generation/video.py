@@ -11,7 +11,7 @@ from diffusers.pipelines.cogvideo.pipeline_output import CogVideoXPipelineOutput
 from PIL import Image
 
 from cogkit.logging import get_logger
-from cogkit.types import GenerationMode
+from cogkit.types import GenerationMode, LoadType
 from cogkit.utils import (
     guess_generation_mode,
     rand_generator,
@@ -39,7 +39,7 @@ def generate_video(
     output_type: Literal["pil", "pt", "np"] = "pil",
     input_image: Image.Image | None = None,
     # * params for model loading
-    load_type: Literal["cuda", "cpu_model_offload", "sequential_cpu_offload"] = "cpu_model_offload",
+    load_type: LoadType = "cpu_model_offload",
     height: int | None = None,
     width: int | None = None,
     num_frames: int | None = None,
@@ -55,8 +55,8 @@ def generate_video(
         - num_videos_per_prompt (int, optional): Number of videos to generate per prompt. Defaults to 1.
         - output_type (Literal, optional): Output type, one of "pil", "pt", or "np". Defaults to "pil".
         - input_image (Image.Image | None, optional): Input image for image-to-video generation. Defaults to None.
-        - load_type (Literal, optional): Model loading type, one of "cuda", "cpu_model_offload", or
-            "sequential_cpu_offload". Defaults to "cpu_model_offload".
+        - load_type (Literal, optional): Device or offloading strategy used for the model.
+            Defaults to "cpu_model_offload".
         - height (int | None, optional): Height of output video. If None, will be inferred. Defaults to None.
         - width (int | None, optional): Width of output video. If None, will be inferred. Defaults to None.
         - num_frames (int | None, optional): Number of frames in generated video. If None, will be inferred.

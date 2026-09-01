@@ -26,6 +26,19 @@ Install `cogkit` from github source:
 pip install "cogkit@git+https://github.com/THUDM/cogkit.git"
 ```
 
+### Apple Silicon
+
+The Apple Silicon lane in this fork is tested with Python 3.12 in a `uv` virtual
+environment. Install the local checkout when using its MPS support:
+
+```bash
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python torch torchvision
+uv pip install --python .venv/bin/python -e ".[finetune]" pytest
+```
+
+See the [Apple Silicon guide](./06-Apple-Silicon.md) for supported features, inference
+placement choices, and the training recipe.
 
 ### Verify installation
 

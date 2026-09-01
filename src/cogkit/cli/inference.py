@@ -11,7 +11,7 @@ from PIL import Image
 
 from cogkit.python import generate_image, generate_video
 from cogkit.logging import get_logger
-from cogkit.types import GenerationMode
+from cogkit.types import GenerationMode, LoadType
 from cogkit.utils import (
     cast_to_torch_dtype,
     guess_generation_mode,
@@ -50,10 +50,11 @@ _logger = get_logger(__name__)
 @click.option(
     "--load_type",
     type=click.Choice(
-        choices=["cuda", "cpu_model_offload", "sequential_cpu_offload"], case_sensitive=False
+        choices=["cuda", "mps", "cpu_model_offload", "sequential_cpu_offload"],
+        case_sensitive=False,
     ),
     default="cpu_model_offload",
-    help="the type of offloading to use for the model, from fastest to slowest and lowest to highest GPU memory usage. default is 'cpu_model_offload'.",
+    help="the device or offloading strategy to use. default is 'cpu_model_offload'.",
 )
 @click.option(
     "--height",
@@ -86,7 +87,7 @@ def inference(
     dtype: Literal["bfloat16", "float16"] = "bfloat16",
     transformer_path: str | None = None,
     lora_model_id_or_path: str | None = None,
-    load_type: Literal["cuda", "cpu_model_offload", "sequential_cpu_offload"] = "cpu_model_offload",
+    load_type: LoadType = "cpu_model_offload",
     # * params for output
     height: int | None = None,
     width: int | None = None,
