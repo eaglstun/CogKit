@@ -106,3 +106,27 @@ still fail or recompute safely, and samples remain byte-for-byte equivalent befo
 For each step, append the commit, machine/OS, PyTorch revision, configuration, raw phase samples,
 memory statistics, parity result, and keep/revert decision here. Do not replace baseline history with
 only the winning number.
+
+### Step 1 baseline — 2026-09-01
+
+- Commit: `14c95eb`
+- Hardware/runtime: M4 Max 64 GB, torch 2.12.1, native MPS available
+- Workload: CogView4-6B LoRA, 512x512 bf16, batch size 1, gradient checkpointing enabled,
+  `PYTORCH_ENABLE_MPS_FALLBACK=1`
+- Profile window: one warmup step followed by four synchronized steps; step 5 included DCP save
+- Losses remained finite: 1.29, 1.28, 1.12, 1.27, 1.31
+- MPS allocation: 12.083 GB before training; 12.520 GB current / 15.086 GB driver after epoch
+
+| Phase                | Samples (seconds)                      |     Median |
+| -------------------- | -------------------------------------- | ---------: |
+| Forward              | 3.254, 3.410, 3.458, 2.994             |    3.332 s |
+| Backward             | 6.482, 6.271, 5.986, 5.853             |    6.128 s |
+| Optimizer            | 0.331, 0.352, 0.354, 0.329             |    0.341 s |
+| Scalar readback      | 0.000426, 0.000442, 0.000403, 0.000451 | 0.000434 s |
+| Data wait            | 0.0082, 0.0100, 0.0122, 0.0104         |   0.0102 s |
+| Whole training batch | 10.068, 10.034, 9.799, 9.177           |    9.916 s |
+| DCP checkpoint       | 0.594                                  |    0.594 s |
+
+Decision: keep the profiler. Backward is 62% of the median profiled batch and is the first target;
+data loading and scalar readback are not material at this baseline. Proceed to the Step 2
+checkpointing-on/off comparison before changing attention or input code.
