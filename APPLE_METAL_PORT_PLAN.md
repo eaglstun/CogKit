@@ -1,10 +1,11 @@
 # CogKit → Apple Metal (MPS) Support — Port Plan
 
 **Status:** ✅ **Phases 1–2 executed & verified 2026-07-08** (commit `adb05ef`+) ·
-🚧 **Phase 3 started 2026-08-31** on `apple-silicon-mps-inference`
+✅ **Phase 3 inference correctness green 2026-09-01** on torch 2.12.1 ·
+✅ **Local PyTorch-fork matrix green 2026-09-01** on `apple-silicon-mps-inference`
 **Executor:** a fresh Fable · **Plan author:** Claude (Opus 4.8) · **Date:** 2026-07-08
 
-**Execution results (M4 Max 64GB, torch 2.12.1):**
+**Execution results (M4 Max 64GB; torch 2.12.1 baseline + local fork):**
 
 - **Phase 1 green:** cogview4-6b LoRA smoke run — 5/5 optimizer steps (~7 s/it @512² bf16),
   DCP checkpoint over gloo ws=1 works, `merge.py --lora` yields a loadable 224-tensor adapter.
@@ -27,12 +28,45 @@
   one-step 512² smoke test passes in both modes. `cpu_model_offload` remains the default:
   one observed run finished in 44.44 s total (27.72 s denoising), while direct `mps` took
   155.15 s total (38.55 s denoising) because full-pipeline placement dominated startup.
-- **Local PyTorch fork matrix pending:** `/Users/eeaglstun/Documents/dev/pytorch` is built
-  as torch `2.15.0a0+gitc521c70` with MPS, but its Python 3.14 environment cannot currently
-  resolve CogKit's inference dependency set. A fresh install also exposed drift in the
-  unpinned Diffusers `main` dependency; the tested CogKit environment uses Diffusers commit
-  `b8905b9b0f01d2df8738ae967d5c02c502f0d3e5`. The comparison needs a Python 3.12 build of
-  the fork plus a frozen, compatible inference dependency set.
+- **Phase 3 transformer → scheduler parity green 2026-09-01:** the final 512² one-step
+  CPU/MPS gate passes using both magnitude and direction checks. `noise_pred` measured
+  7.4905% mean relative error, 7.6724% normalized RMSE, and 0.997058 cosine similarity;
+  the post-scheduler latent measured 2.6034%, 2.6835%, and 0.999632 respectively. The
+  warm-cache run took 140.94 s on CPU and 6.34 s on MPS. Stage isolation showed exact
+  patch/timestep inputs, ~0.16% first-attention drift, and learned nonlinear/projection
+  sensitivity rather than a broken MPS GELU, linear, or SDPA kernel.
+- **Phase 3 real prompt + VAE parity green 2026-09-01:** raw GLM embeddings differ mostly
+  by one global scale (0.999975 cosine; 0.7107% scale-adjusted NRMSE). CogView's actual
+  projected + LayerNorm-normalized context is much closer: 1.1449% MRE, 0.4982% NRMSE,
+  0.999988 cosine. Isolated VAE decode is 0.2793% / 0.3820% / 0.999993. The composed
+  prompt → transformer → scheduler path passes at both 64² and 512² under a separate
+  cancellation-aware latent bound; at 512² it measured 2.4561% noise MRE and 6.9126%
+  latent MRE with 0.998123 latent cosine. A full 64² tensor-image decode measured 3.4262%
+  MRE, 4.3331% NRMSE, and 0.999106 cosine. Phase 3 correctness is complete for the pinned
+  torch 2.12.1 environment; the local PyTorch-fork comparison below independently confirms
+  the same correctness envelope.
+- **Local PyTorch fork matrix green 2026-09-01:** torch
+  `2.15.0a0+gitcfca6b6` (`cfca6b65486c97a2388977af003fe6446e123088`) was rebuilt with
+  MPS for Python 3.12.13 in the isolated `.venv-pytorch-fork` clone. The environment keeps
+  the pinned inference stack: Diffusers `0.40.0.dev0` at
+  `b8905b9b0f01d2df8738ae967d5c02c502f0d3e5`, Transformers 4.57.6, Accelerate 1.14.0,
+  Safetensors 0.8.0, and huggingface-hub 0.36.2. `pip check` retains the known CogKit
+  metadata mismatch (`peft~=0.14.0` declared vs PEFT 0.19.1 required by Diffusers main),
+  but CogKit and the full inference stack import and exit cleanly. Torchvision 0.27.1 is
+  ABI-bound to torch 2.12.1 and caused a signal-11 teardown crash under the fork; rebuilding official
+  torchvision `main` at `ac8d215f7d45d6601451b62e9f81622dac8aa0b4` produced compatible
+  torchvision `0.30.0a0+ac8d215` and eliminated the crash.
+- **Fork parity matches the pinned runtime:** at 512² the composed real-prompt path
+  measured 2.4056% noise MRE / 2.4732% NRMSE / 0.999694 cosine and 6.7750% latent MRE /
+  6.0071% NRMSE / 0.998203 cosine (CPU 140.29 s, MPS 20.88 s). The isolated normalized
+  text context measured 1.1227% MRE / 0.5133% NRMSE / 0.999987 cosine, and VAE decode
+  measured 0.2810% / 0.3806% / 0.999993. The stricter synthetic 512² gate measured
+  7.4056% noise MRE / 7.5892% NRMSE / 0.997122 cosine and 2.5729% latent MRE / 2.6562%
+  NRMSE / 0.999647 cosine. The final composed 64² tensor image measured 2.9388% MRE /
+  3.7373% NRMSE / 0.999348 cosine. All gates pass. The checkout changed externally from
+  `mps-threshold-metal@eb1c2dd` to `sync-upstream-main-2026-08-31@cfca6b6` during
+  configuration; the built artifact's embedded commit and the results above are therefore
+  attributed to `cfca6b6`, not to the earlier branch.
 
 This is an executable spec. It assumes the reader is comfortable in the CogKit codebase
 (read the repo-root `CLAUDE.md` first) and has done Apple-Silicon/MPS work before. **Line
@@ -62,7 +96,7 @@ twin of the finetrainers MPS port; that plan and its lessons are the primary pri
 - **Eric's MPS-porting playbook (authoritative):**
   `https://ai.ericeaglstun.com/deep-dives/porting-ml-to-apple-silicon/` — the six-problems
   framework this plan is organized around (memory `apple-silicon-porting-deepdive`).
-- **`apple-silicon` skill** (`~/.claude/skills/apple-silicon/`) — Metal/MPS reference shelf.
+- **`apple-silicon` skill** (`~/.agents/skills/apple-silicon/`) — Metal/MPS reference shelf.
   ⚠️ **Relevance caveat:** it was built for CTranslate2's **hand-written C++/MSL** Metal
   engine. **We are NOT writing Metal kernels here** — CogKit rides PyTorch's `torch.mps`
   backend. Reuse the _discipline_ (parity testing, fp16/bf16 "confident garbage" awareness),
@@ -145,10 +179,11 @@ Wire the `cogkit inference` / `python/generation` path to MPS (`load_type`/offlo
 differ — there's no `cpu_model_offload`-to-CUDA assumption to satisfy). Lower risk than
 training; can be done in parallel. See §5.
 
-**First slice, 2026-08-31:** explicit device routing, CLI/API propagation, unit coverage,
-and opt-in real-model smoke coverage are implemented on `apple-silicon-mps-inference`.
-Numerical parity for the inference-specific text encode → scheduler → denoise → VAE decode
-path remains the correctness gate before Phase 3 is complete.
+**Complete on the pinned and local-fork environments, 2026-09-01:** explicit device routing, CLI/API
+propagation, unit coverage, real-model smoke coverage, and CPU-oracle parity for text
+encode → denoise → scheduler → VAE decode are implemented on
+`apple-silicon-mps-inference`. The same matrix passes under the isolated Python 3.12 local
+PyTorch-fork environment described in §5.
 
 ### Phase 4+ (out of scope now)
 
@@ -204,16 +239,115 @@ COGKIT_RUN_MPS_INFERENCE=1 PYTORCH_ENABLE_MPS_FALLBACK=1 \
 COGKIT_RUN_MPS_INFERENCE=1 COGKIT_MPS_LOAD_TYPE=mps \
   PYTORCH_ENABLE_MPS_FALLBACK=1 .venv/bin/python -m pytest -q -s \
   tests/test_inference_mps.py::test_cogview4_real_model_mps_smoke
+
+# CPU-to-MPS transformer + scheduler parity (512² by default):
+COGKIT_RUN_MPS_INFERENCE_PARITY=1 PYTORCH_ENABLE_MPS_FALLBACK=1 \
+  .venv/bin/python -m pytest -q -s \
+  tests/test_inference_mps.py::test_cogview4_one_step_cpu_mps_latent_parity
+
+# Fast stage-localization fixture (diagnostic, not the acceptance resolution):
+COGKIT_RUN_MPS_INFERENCE_PARITY=1 COGKIT_MPS_PARITY_SIZE=64 \
+  COGKIT_MPS_PARITY_STAGES=1 PYTORCH_ENABLE_MPS_FALLBACK=1 \
+  .venv/bin/python -m pytest -q -s \
+  tests/test_inference_mps.py::test_cogview4_one_step_cpu_mps_latent_parity
+
+# Isolated real GLM text context + VAE decode parity (64 tokens / 64²):
+COGKIT_RUN_MPS_INFERENCE_COMPONENT_PARITY=1 PYTORCH_ENABLE_MPS_FALLBACK=1 \
+  .venv/bin/python -m pytest -q -s \
+  tests/test_inference_mps.py::test_cogview4_text_encoder_and_vae_cpu_mps_parity
+
+# Composed real prompt → denoiser → scheduler parity (64² fast gate):
+COGKIT_RUN_MPS_INFERENCE_REAL_PROMPT_PARITY=1 PYTORCH_ENABLE_MPS_FALLBACK=1 \
+  .venv/bin/python -m pytest -q -s \
+  tests/test_inference_mps.py::test_cogview4_real_prompt_cpu_mps_latent_parity
+
+# Add the final tensor-image VAE decode (slow CPU oracle, ~5 minutes at 64²):
+COGKIT_RUN_MPS_INFERENCE_REAL_PROMPT_PARITY=1 COGKIT_MPS_REAL_PROMPT_DECODE=1 \
+  PYTORCH_ENABLE_MPS_FALLBACK=1 .venv/bin/python -m pytest -q -s \
+  tests/test_inference_mps.py::test_cogview4_real_prompt_cpu_mps_latent_parity
 ```
 
-Run the same test under the local PyTorch fork once it has a CogKit-compatible Python
-environment; the test prints the Torch source/version plus Diffusers and Transformers
-versions so results cannot be accidentally attributed to the wrong runtime.
+The local-fork matrix uses `.venv-pytorch-fork`, an APFS clone of the known-good `.venv`
+made before replacing torch. Because the source build is editable and the PyTorch build
+tree is shared, record both `torch.__version__` and `torch.version.git_version` after every
+build; do not infer provenance from the checkout branch observed before a long compile.
+The reproducible dependency set is the one recorded in the execution results above.
+Official torchvision's compatibility table pairs torch `main`/nightly with torchvision
+`main`/nightly; a release torchvision wheel built against torch 2.12 must not be reused.
+From the CogKit root, the environment/build sequence is:
 
-The first 512² one-step parity probe measured 2.603% mean relative error in the
-post-scheduler latent (CPU 440.59 s, MPS 59.97 s). The test now captures pre-scheduler
-`noise_pred` separately so the next quiet-window run can distinguish transformer drift
-from scheduler amplification; that follow-up run is pending.
+```bash
+# APFS copy preserves the exact working inference stack without mutating .venv.
+cp -cR .venv .venv-pytorch-fork
+.venv-pytorch-fork/bin/python -m ensurepip
+
+cd /Users/eeaglstun/Documents/dev/pytorch
+/Users/eeaglstun/Documents/dev/CogKit/.venv-pytorch-fork/bin/python \
+  -m pip install -r requirements-build.txt
+USE_CUDA=0 USE_DISTRIBUTED=0 USE_MKLDNN=0 USE_OPENMP=0 \
+  BUILD_TEST=0 USE_FLASH_ATTENTION=0 \
+  /Users/eeaglstun/Documents/dev/CogKit/.venv-pytorch-fork/bin/python \
+  -m pip install -e . -v --no-build-isolation
+
+# Build torchvision main at a recorded commit against this exact torch ABI.
+git clone https://github.com/pytorch/vision.git /private/tmp/cogkit-torchvision-main
+cd /private/tmp/cogkit-torchvision-main
+FORCE_MPS=1 /Users/eeaglstun/Documents/dev/CogKit/.venv-pytorch-fork/bin/python \
+  -m pip install --no-deps --no-build-isolation -v .
+```
+
+Before the PyTorch build, pin or otherwise stabilize the source checkout; this run caught
+a concurrent branch change only because the embedded `torch.version.git_version` differed
+from the pre-build observation. The parity tests now print that full embedded commit.
+
+The successful fork gates were:
+
+```bash
+# Fast 64² composed gate, then authoritative 512² gate:
+COGKIT_RUN_MPS_INFERENCE_REAL_PROMPT_PARITY=1 COGKIT_MPS_COMPONENT_SIZE=64 \
+  .venv-pytorch-fork/bin/python -m pytest -q -s \
+  tests/test_inference_mps.py::test_cogview4_real_prompt_cpu_mps_latent_parity
+COGKIT_RUN_MPS_INFERENCE_REAL_PROMPT_PARITY=1 COGKIT_MPS_COMPONENT_SIZE=512 \
+  .venv-pytorch-fork/bin/python -m pytest -q -s \
+  tests/test_inference_mps.py::test_cogview4_real_prompt_cpu_mps_latent_parity
+
+# Isolated text encoder + VAE:
+COGKIT_RUN_MPS_INFERENCE_COMPONENT_PARITY=1 COGKIT_MPS_COMPONENT_SIZE=64 \
+  .venv-pytorch-fork/bin/python -m pytest -q -s \
+  tests/test_inference_mps.py::test_cogview4_text_encoder_and_vae_cpu_mps_parity
+```
+
+The 512² one-step follow-up proved the scheduler **damps** rather than amplifies the
+transformer difference: pre-scheduler `noise_pred` is 7.4905% MRE / 0.997058 cosine,
+while the post-scheduler latent is 2.6034% MRE / 0.999632 cosine. The acceptance contract
+therefore checks both magnitude (MRE + normalized RMSE) and direction (cosine): noise
+must stay below 10% / 10% and at or above 0.99 cosine; the latent must stay below 5% /
+5% and at or above 0.995 cosine. These thresholds reject directional corruption without
+mistaking expected bf16 path sensitivity for an MPS kernel failure.
+
+The opt-in stage capture localized that sensitivity. Patch embedding and timestep
+conditioning are exact; the first attention output differs by about 0.16%. At 64² the
+first feed-forward input projection differs by only 0.0506%, but tanh-GELU exposes 3.03%
+output sensitivity. Cross-replaying the captured MPS preactivation through CPU GELU
+reproduces 3.0303%, while the actual MPS GELU adds only 0.0008%; representative SDPA and
+linear micro-probes likewise ruled out those kernels. The learned final projection
+amplifies the small residual-stream difference into `noise_pred`, after which the
+scheduler reduces it. Do not "fix" this by fp32-upcasting GELU/SDPA or swapping in the
+training attention processor: all three experiments were neutral or worse.
+
+Real GLM output needs a scale-aware gate. Its raw MPS residual stream has 13.0681% MRE
+because its norm is 1.14008× the CPU result, but direction is preserved (0.999975 cosine)
+and removing one best-fit scale leaves 0.7107% NRMSE. This is not passed straight into
+attention: CogView applies `text_proj` followed by context LayerNorm. That actual consumed
+context measures 1.1449% MRE / 0.4982% NRMSE / 0.999988 cosine, so the test checks raw
+direction + scale-adjusted residual and then applies tight 2% bounds to normalized context.
+
+With real prompt embeddings, the one-step scheduler output is more cancellation-sensitive
+than the synthetic fixture: 5.4226% MRE at 64² and 6.9126% at 512², despite noise prediction
+MRE of 3.9317% and 2.4561% respectively and latent cosine above 0.998. The composed test
+therefore has its own 7.5% MRE/NRMSE + 0.995 cosine latent gate; the original synthetic
+5% bound remains unchanged. The downstream 64² tensor image is closer again (3.4262% MRE,
+4.3331% NRMSE, 0.999106 cosine), passing a 5% + 0.995 image gate.
 
 ---
 
