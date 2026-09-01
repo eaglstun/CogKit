@@ -1,6 +1,7 @@
 {
-  "recorded_at": "2026-09-01T11:14:28-06:00",
-  "cogkit_commit": "bd98a9b9bb74535d80f556a6b73b3a8a7ef1bec0",
+  "recorded_at": "2026-09-01T15:17:40-06:00",
+  "supersedes": "single-invocation matrix recorded 2026-09-01T11:14:28-06:00",
+  "cogkit_commit": "22593b117c65aba3c9dc81b2cbd229cbdedcde58",
   "host": {
     "model": "MacBook Pro Mac16,5",
     "chip": "Apple M4 Max",
@@ -8,6 +9,17 @@
     "memory_gb": 64,
     "os": "macOS 26.5.2",
     "os_build": "25F84"
+  },
+  "method": {
+    "passes": 5,
+    "cells_per_pass": 4,
+    "process": "fresh Python process per cell",
+    "cooldown_seconds_before_every_cell": 60,
+    "order": "runtime order alternates by pass (odd: baseline first, even: fork first) so thermal drift does not favour one runtime",
+    "warm_up": "none in-process; pass 1 shows warm-up contamination and is reported separately",
+    "denoising_steps": 1,
+    "resolution": 512,
+    "dtype": "bfloat16"
   },
   "shared_dependencies": {
     "diffusers": "0.40.0.dev0",
@@ -21,63 +33,286 @@
       "torchvision": "0.27.1"
     },
     "fork": {
-      "torch": "2.15.0a0+gitcfca6b6",
-      "torch_git": "cfca6b65486c97a2388977af003fe6446e123088",
+      "torch": "2.15.0a0+git9737e28",
+      "torch_git": "9737e2892a58d69b6cabdaedb33c4bd5809c54da",
       "torchvision": "0.30.0a0+ac8d215"
     }
   },
-  "benchmarks": [
+  "summary": {
+    "synthetic_cpu": {
+      "baseline": {
+        "median": 116.98,
+        "min": 111.54,
+        "max": 143.64,
+        "cv_pct": 9.8,
+        "n": 5
+      },
+      "fork": {
+        "median": 112.32,
+        "min": 111.44,
+        "max": 136.99,
+        "cv_pct": 9.5,
+        "n": 5
+      },
+      "paired_all": {
+        "per_pass_pct": [10.5, -4.6, -0.1, -4.5, 0.5],
+        "median_pct": -0.1,
+        "fork_faster": 3,
+        "n": 5
+      },
+      "paired_excl_pass1": {
+        "per_pass_pct": [-4.6, -0.1, -4.5, 0.5],
+        "median_pct": -2.3,
+        "fork_faster": 3,
+        "n": 4
+      }
+    },
+    "synthetic_mps": {
+      "baseline": {
+        "median": 6.14,
+        "min": 5.57,
+        "max": 6.54,
+        "cv_pct": 5.1,
+        "n": 5
+      },
+      "fork": {
+        "median": 6.1,
+        "min": 5.23,
+        "max": 9.37,
+        "cv_pct": 22.2,
+        "n": 5
+      },
+      "paired_all": {
+        "per_pass_pct": [43.3, -6.1, 0.2, -5.3, 0.0],
+        "median_pct": 0.0,
+        "fork_faster": 2,
+        "n": 5
+      },
+      "paired_excl_pass1": {
+        "per_pass_pct": [-6.1, 0.2, -5.3, 0.0],
+        "median_pct": -2.7,
+        "fork_faster": 2,
+        "n": 4
+      }
+    },
+    "real_cpu": {
+      "baseline": {
+        "median": 117.58,
+        "min": 116.56,
+        "max": 128.0,
+        "cv_pct": 4.0,
+        "n": 5
+      },
+      "fork": {
+        "median": 117.76,
+        "min": 116.93,
+        "max": 130.13,
+        "cv_pct": 4.5,
+        "n": 5
+      },
+      "paired_all": {
+        "per_pass_pct": [3.6, -1.5, 0.2, -0.3, 0.5],
+        "median_pct": 0.2,
+        "fork_faster": 2,
+        "n": 5
+      },
+      "paired_excl_pass1": {
+        "per_pass_pct": [-1.5, 0.2, -0.3, 0.5],
+        "median_pct": -0.1,
+        "fork_faster": 2,
+        "n": 4
+      }
+    },
+    "real_mps": {
+      "baseline": {
+        "median": 25.7,
+        "min": 21.14,
+        "max": 28.43,
+        "cv_pct": 11.4,
+        "n": 5
+      },
+      "fork": {
+        "median": 24.75,
+        "min": 19.57,
+        "max": 26.37,
+        "cv_pct": 12.5,
+        "n": 5
+      },
+      "paired_all": {
+        "per_pass_pct": [-7.2, -8.5, -22.8, 20.4, -11.2],
+        "median_pct": -8.5,
+        "fork_faster": 4,
+        "n": 5
+      },
+      "paired_excl_pass1": {
+        "per_pass_pct": [-8.5, -22.8, 20.4, -11.2],
+        "median_pct": -9.8,
+        "fork_faster": 3,
+        "n": 4
+      }
+    }
+  },
+  "verdict": "No timing difference between baseline and fork exceeds run-to-run noise at n=5. Every cell's paired delta changes sign across passes. Correctness metrics are deterministic and identical between fork commits cfca6b6 and 9737e28.",
+  "runs": [
     {
-      "name": "synthetic_transformer_scheduler_512",
+      "pass_": 1,
       "runtime": "baseline",
-      "cpu_seconds": 134.66,
-      "mps_seconds": 5.27,
-      "pytest_seconds": 144.13,
-      "noise_mre": 0.074905,
-      "noise_nrmse": 0.076724,
-      "noise_cosine": 0.997058,
-      "latent_mre": 0.026034,
-      "latent_nrmse": 0.026835,
-      "latent_cosine": 0.999640
+      "workload": "synthetic",
+      "cpu_seconds": 120.74,
+      "mps_seconds": 6.54,
+      "record": "torch=2.12.1 git=7269437d655783a26cba32aa88195b741ff496aa size=512 cpu=120.74s mps=6.54s noise_mean_relative_error=0.074905 latent_mean_relative_error=0.026034 noise_normalized_rmse=0.076724 latent_normalized_rmse=0.026835 noise_cosine_similarity=0.997058 latent_cosine_similarity=0.999640"
     },
     {
-      "name": "synthetic_transformer_scheduler_512",
+      "pass_": 1,
       "runtime": "fork",
-      "cpu_seconds": 124.44,
-      "mps_seconds": 6.56,
-      "pytest_seconds": 136.02,
-      "noise_mre": 0.074056,
-      "noise_nrmse": 0.075892,
-      "noise_cosine": 0.997122,
-      "latent_mre": 0.025729,
-      "latent_nrmse": 0.026562,
-      "latent_cosine": 0.999647
+      "workload": "synthetic",
+      "cpu_seconds": 133.36,
+      "mps_seconds": 9.37,
+      "record": "torch=2.15.0a0+git9737e28 git=9737e2892a58d69b6cabdaedb33c4bd5809c54da size=512 cpu=133.36s mps=9.37s noise_mean_relative_error=0.074056 latent_mean_relative_error=0.025729 noise_normalized_rmse=0.075892 latent_normalized_rmse=0.026562 noise_cosine_similarity=0.997122 latent_cosine_similarity=0.999647"
     },
     {
-      "name": "real_prompt_transformer_scheduler_512",
+      "pass_": 1,
       "runtime": "baseline",
-      "cpu_seconds": 139.35,
-      "mps_seconds": 23.31,
-      "pytest_seconds": 168.18,
-      "noise_mre": 0.024561,
-      "noise_nrmse": 0.025268,
-      "noise_cosine": 0.999681,
-      "latent_mre": 0.069126,
-      "latent_nrmse": 0.061329,
-      "latent_cosine": 0.998123
+      "workload": "real",
+      "cpu_seconds": 125.62,
+      "mps_seconds": 28.43,
+      "record": "torch=2.12.1 git=7269437d655783a26cba32aa88195b741ff496aa text_length=64 size=512 cpu=125.62s mps=28.43s noise_mre=0.024561 noise_nrmse=0.025268 noise_cosine=0.999681 latent_mre=0.069126 latent_nrmse=0.061329 latent_cosine=0.998123"
     },
     {
-      "name": "real_prompt_transformer_scheduler_512",
+      "pass_": 1,
       "runtime": "fork",
-      "cpu_seconds": 130.35,
-      "mps_seconds": 20.86,
-      "pytest_seconds": 157.17,
-      "noise_mre": 0.024056,
-      "noise_nrmse": 0.024732,
-      "noise_cosine": 0.999694,
-      "latent_mre": 0.067750,
-      "latent_nrmse": 0.060071,
-      "latent_cosine": 0.998203
+      "workload": "real",
+      "cpu_seconds": 130.13,
+      "mps_seconds": 26.37,
+      "record": "torch=2.15.0a0+git9737e28 git=9737e2892a58d69b6cabdaedb33c4bd5809c54da text_length=64 size=512 cpu=130.13s mps=26.37s noise_mre=0.024056 noise_nrmse=0.024732 noise_cosine=0.999694 latent_mre=0.067750 latent_nrmse=0.060071 latent_cosine=0.998203"
+    },
+    {
+      "pass_": 2,
+      "runtime": "fork",
+      "workload": "synthetic",
+      "cpu_seconds": 136.99,
+      "mps_seconds": 5.23,
+      "record": "torch=2.15.0a0+git9737e28 git=9737e2892a58d69b6cabdaedb33c4bd5809c54da size=512 cpu=136.99s mps=5.23s noise_mean_relative_error=0.074056 latent_mean_relative_error=0.025729 noise_normalized_rmse=0.075892 latent_normalized_rmse=0.026562 noise_cosine_similarity=0.997122 latent_cosine_similarity=0.999647"
+    },
+    {
+      "pass_": 2,
+      "runtime": "baseline",
+      "workload": "synthetic",
+      "cpu_seconds": 143.64,
+      "mps_seconds": 5.57,
+      "record": "torch=2.12.1 git=7269437d655783a26cba32aa88195b741ff496aa size=512 cpu=143.64s mps=5.57s noise_mean_relative_error=0.074905 latent_mean_relative_error=0.026034 noise_normalized_rmse=0.076724 latent_normalized_rmse=0.026835 noise_cosine_similarity=0.997058 latent_cosine_similarity=0.999640"
+    },
+    {
+      "pass_": 2,
+      "runtime": "fork",
+      "workload": "real",
+      "cpu_seconds": 126.1,
+      "mps_seconds": 24.75,
+      "record": "torch=2.15.0a0+git9737e28 git=9737e2892a58d69b6cabdaedb33c4bd5809c54da text_length=64 size=512 cpu=126.10s mps=24.75s noise_mre=0.024056 noise_nrmse=0.024732 noise_cosine=0.999694 latent_mre=0.067750 latent_nrmse=0.060071 latent_cosine=0.998203"
+    },
+    {
+      "pass_": 2,
+      "runtime": "baseline",
+      "workload": "real",
+      "cpu_seconds": 128.0,
+      "mps_seconds": 27.04,
+      "record": "torch=2.12.1 git=7269437d655783a26cba32aa88195b741ff496aa text_length=64 size=512 cpu=128.00s mps=27.04s noise_mre=0.024561 noise_nrmse=0.025268 noise_cosine=0.999681 latent_mre=0.069126 latent_nrmse=0.061329 latent_cosine=0.998123"
+    },
+    {
+      "pass_": 3,
+      "runtime": "baseline",
+      "workload": "synthetic",
+      "cpu_seconds": 111.54,
+      "mps_seconds": 6.14,
+      "record": "torch=2.12.1 git=7269437d655783a26cba32aa88195b741ff496aa size=512 cpu=111.54s mps=6.14s noise_mean_relative_error=0.074905 latent_mean_relative_error=0.026034 noise_normalized_rmse=0.076724 latent_normalized_rmse=0.026835 noise_cosine_similarity=0.997058 latent_cosine_similarity=0.999640"
+    },
+    {
+      "pass_": 3,
+      "runtime": "fork",
+      "workload": "synthetic",
+      "cpu_seconds": 111.44,
+      "mps_seconds": 6.15,
+      "record": "torch=2.15.0a0+git9737e28 git=9737e2892a58d69b6cabdaedb33c4bd5809c54da size=512 cpu=111.44s mps=6.15s noise_mean_relative_error=0.074056 latent_mean_relative_error=0.025729 noise_normalized_rmse=0.075892 latent_normalized_rmse=0.026562 noise_cosine_similarity=0.997122 latent_cosine_similarity=0.999647"
+    },
+    {
+      "pass_": 3,
+      "runtime": "baseline",
+      "workload": "real",
+      "cpu_seconds": 117.58,
+      "mps_seconds": 25.7,
+      "record": "torch=2.12.1 git=7269437d655783a26cba32aa88195b741ff496aa text_length=64 size=512 cpu=117.58s mps=25.70s noise_mre=0.024561 noise_nrmse=0.025268 noise_cosine=0.999681 latent_mre=0.069126 latent_nrmse=0.061329 latent_cosine=0.998123"
+    },
+    {
+      "pass_": 3,
+      "runtime": "fork",
+      "workload": "real",
+      "cpu_seconds": 117.76,
+      "mps_seconds": 19.84,
+      "record": "torch=2.15.0a0+git9737e28 git=9737e2892a58d69b6cabdaedb33c4bd5809c54da text_length=64 size=512 cpu=117.76s mps=19.84s noise_mre=0.024056 noise_nrmse=0.024732 noise_cosine=0.999694 latent_mre=0.067750 latent_nrmse=0.060071 latent_cosine=0.998203"
+    },
+    {
+      "pass_": 4,
+      "runtime": "fork",
+      "workload": "synthetic",
+      "cpu_seconds": 111.7,
+      "mps_seconds": 5.87,
+      "record": "torch=2.15.0a0+git9737e28 git=9737e2892a58d69b6cabdaedb33c4bd5809c54da size=512 cpu=111.70s mps=5.87s noise_mean_relative_error=0.074056 latent_mean_relative_error=0.025729 noise_normalized_rmse=0.075892 latent_normalized_rmse=0.026562 noise_cosine_similarity=0.997122 latent_cosine_similarity=0.999647"
+    },
+    {
+      "pass_": 4,
+      "runtime": "baseline",
+      "workload": "synthetic",
+      "cpu_seconds": 116.98,
+      "mps_seconds": 6.2,
+      "record": "torch=2.12.1 git=7269437d655783a26cba32aa88195b741ff496aa size=512 cpu=116.98s mps=6.20s noise_mean_relative_error=0.074905 latent_mean_relative_error=0.026034 noise_normalized_rmse=0.076724 latent_normalized_rmse=0.026835 noise_cosine_similarity=0.997058 latent_cosine_similarity=0.999640"
+    },
+    {
+      "pass_": 4,
+      "runtime": "fork",
+      "workload": "real",
+      "cpu_seconds": 116.93,
+      "mps_seconds": 25.46,
+      "record": "torch=2.15.0a0+git9737e28 git=9737e2892a58d69b6cabdaedb33c4bd5809c54da text_length=64 size=512 cpu=116.93s mps=25.46s noise_mre=0.024056 noise_nrmse=0.024732 noise_cosine=0.999694 latent_mre=0.067750 latent_nrmse=0.060071 latent_cosine=0.998203"
+    },
+    {
+      "pass_": 4,
+      "runtime": "baseline",
+      "workload": "real",
+      "cpu_seconds": 117.27,
+      "mps_seconds": 21.14,
+      "record": "torch=2.12.1 git=7269437d655783a26cba32aa88195b741ff496aa text_length=64 size=512 cpu=117.27s mps=21.14s noise_mre=0.024561 noise_nrmse=0.025268 noise_cosine=0.999681 latent_mre=0.069126 latent_nrmse=0.061329 latent_cosine=0.998123"
+    },
+    {
+      "pass_": 5,
+      "runtime": "baseline",
+      "workload": "synthetic",
+      "cpu_seconds": 111.77,
+      "mps_seconds": 6.1,
+      "record": "torch=2.12.1 git=7269437d655783a26cba32aa88195b741ff496aa size=512 cpu=111.77s mps=6.10s noise_mean_relative_error=0.074905 latent_mean_relative_error=0.026034 noise_normalized_rmse=0.076724 latent_normalized_rmse=0.026835 noise_cosine_similarity=0.997058 latent_cosine_similarity=0.999640"
+    },
+    {
+      "pass_": 5,
+      "runtime": "fork",
+      "workload": "synthetic",
+      "cpu_seconds": 112.32,
+      "mps_seconds": 6.1,
+      "record": "torch=2.15.0a0+git9737e28 git=9737e2892a58d69b6cabdaedb33c4bd5809c54da size=512 cpu=112.32s mps=6.10s noise_mean_relative_error=0.074056 latent_mean_relative_error=0.025729 noise_normalized_rmse=0.075892 latent_normalized_rmse=0.026562 noise_cosine_similarity=0.997122 latent_cosine_similarity=0.999647"
+    },
+    {
+      "pass_": 5,
+      "runtime": "baseline",
+      "workload": "real",
+      "cpu_seconds": 116.56,
+      "mps_seconds": 22.03,
+      "record": "torch=2.12.1 git=7269437d655783a26cba32aa88195b741ff496aa text_length=64 size=512 cpu=116.56s mps=22.03s noise_mre=0.024561 noise_nrmse=0.025268 noise_cosine=0.999681 latent_mre=0.069126 latent_nrmse=0.061329 latent_cosine=0.998123"
+    },
+    {
+      "pass_": 5,
+      "runtime": "fork",
+      "workload": "real",
+      "cpu_seconds": 117.1,
+      "mps_seconds": 19.57,
+      "record": "torch=2.15.0a0+git9737e28 git=9737e2892a58d69b6cabdaedb33c4bd5809c54da text_length=64 size=512 cpu=117.10s mps=19.57s noise_mre=0.024056 noise_nrmse=0.024732 noise_cosine=0.999694 latent_mre=0.067750 latent_nrmse=0.060071 latent_cosine=0.998203"
     }
   ]
 }
