@@ -6,3 +6,4 @@ from .io import *  # noqa
 from .dist import *  # noqa
 from .misc import *  # noqa
 from .tracker import *  # noqa
+from .performance import *  # noqa

@@ -44,6 +44,11 @@ gradient_accumulation_steps: 1
 mixed_precision: "bf16"
 learning_rate: 2.0e-5
 
+# Opt-in synchronized phase timing. Set profile_steps > 0 only for benchmark runs;
+# explicit MPS synchronization intentionally slows the profiled steps.
+profile_warmup_steps: 1
+profile_steps: 0
+
 # fork-based dataloader workers are unreliable on macOS; keep in-process
 num_workers: 0
 pin_memory: false

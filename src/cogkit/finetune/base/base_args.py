@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, ValidationInfo, field_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 
 class BaseArgs(BaseModel):
@@ -71,6 +71,9 @@ class BaseArgs(BaseModel):
     pin_memory: bool = True
 
     gradient_checkpointing: bool = True
+    # Synchronizing phase timers are opt-in because they intentionally remove CPU/GPU overlap.
+    profile_warmup_steps: int = Field(default=1, ge=0)
+    profile_steps: int = Field(default=0, ge=0)
     nccl_timeout: timedelta = timedelta(seconds=1800)
 
     ########## Validation ##########

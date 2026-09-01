@@ -2,6 +2,7 @@
 import json
 import math
 import os
+import time
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
 from functools import partial
@@ -43,6 +44,7 @@ from ..utils import (
     is_main_process,
     list_files,
     mkdir,
+    TrainingProfiler,
 )
 
 _DTYPE_MAP = {
@@ -337,6 +339,13 @@ class BaseTrainer(ABC):
         self.state.generator = generator
 
         free_memory()
+        profiler = TrainingProfiler(
+            device=self.state.device,
+            warmup_steps=self.uargs.profile_warmup_steps,
+            profile_steps=self.uargs.profile_steps,
+        )
+        profile_origin_step = global_step
+        data_wait_started = time.perf_counter()
         ckpt_path = None
         for epoch in range(initial_epoch, self.uargs.train_epochs):
             self.logger.debug(f"Starting epoch ({epoch + 1}/{self.uargs.train_epochs})")
@@ -346,17 +355,33 @@ class BaseTrainer(ABC):
             for step, batch in enumerate(self.train_data_loader):
                 self.logger.debug(f"Starting step {step + 1}, global step: {global_step}")
 
+                # Warmup/profile counts are relative to this process, including after resume.
+                profile_step = profiler.should_profile(global_step - profile_origin_step)
+                if profile_step:
+                    profiler.record("data_wait", time.perf_counter() - data_wait_started)
+
                 is_sync_step = (step + 1) % self.uargs.gradient_accumulation_steps == 0
                 is_last_step = (step + 1) == len(self.train_data_loader)
                 sync_grad = is_sync_step or is_last_step
 
-                logs = self.train_step(batch, sync_grad=sync_grad)
+                with profiler.measure("train_batch", enabled=profile_step):
+                    logs = self.train_step(
+                        batch,
+                        sync_grad=sync_grad,
+                        profiler=profiler,
+                        profile_step=profile_step,
+                    )
 
                 if sync_grad:
                     global_step += 1
                     progress_bar.update(1)
 
-                    ckpt_path = self.maybe_save_checkpoint(global_step)
+                    will_checkpoint = global_step % self.uargs.checkpointing_steps == 0
+                    with profiler.measure(
+                        "checkpoint",
+                        enabled=profile_step and will_checkpoint,
+                    ):
+                        ckpt_path = self.maybe_save_checkpoint(global_step)
 
                     progress_bar.set_postfix(logs)
 
@@ -367,13 +392,29 @@ class BaseTrainer(ABC):
                         free_memory()
                         self.validate(global_step, ckpt_path=ckpt_path)
 
+                data_wait_started = time.perf_counter()
+
             memory_statistics = get_memory_statistics(self.state.device)
             self.logger.info(
                 f"Memory after epoch {epoch + 1}: {json.dumps(memory_statistics, indent=4)}"
             )
 
-    def train_step(self, batch: dict[str, Any], sync_grad: bool) -> dict[str, Any]:
+        if profiler.enabled:
+            self.logger.info(
+                f"Synchronized training phase profile: {json.dumps(profiler.summary(), indent=4)}"
+            )
+
+    def train_step(
+        self,
+        batch: dict[str, Any],
+        sync_grad: bool,
+        profiler: TrainingProfiler | None = None,
+        profile_step: bool = False,
+    ) -> dict[str, Any]:
         logs = {}
+
+        if profiler is None:
+            profiler = TrainingProfiler(device=self.state.device)
 
         # SINGLE keeps the bare module (no .no_sync()); there is no gradient sync to defer
         if self.uargs.strategy == "SINGLE" or sync_grad:
@@ -382,23 +423,26 @@ class BaseTrainer(ABC):
             sync_context = self.components.transformer.no_sync()
 
         with sync_context:
-            loss = self.compute_loss(batch)
+            with profiler.measure("forward", enabled=profile_step):
+                loss = self.compute_loss(batch)
             loss = loss / self.uargs.gradient_accumulation_steps
-            loss.backward()
+            with profiler.measure("backward", enabled=profile_step):
+                loss.backward()
 
         if sync_grad:
-            if self.uargs.strategy in ("DDP", "SINGLE"):
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    self.components.transformer.parameters(),
-                    max_norm=self.uargs.max_grad_norm,
-                )
-            else:
-                grad_norm = self.components.transformer.clip_grad_norm_(
-                    max_norm=self.uargs.max_grad_norm
-                )
-            self.optimizer.step()
-            self.lr_scheduler.step()
-            self.optimizer.zero_grad()
+            with profiler.measure("optimizer", enabled=profile_step):
+                if self.uargs.strategy in ("DDP", "SINGLE"):
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        self.components.transformer.parameters(),
+                        max_norm=self.uargs.max_grad_norm,
+                    )
+                else:
+                    grad_norm = self.components.transformer.clip_grad_norm_(
+                        max_norm=self.uargs.max_grad_norm
+                    )
+                self.optimizer.step()
+                self.lr_scheduler.step()
+                self.optimizer.zero_grad()
 
             loss = loss.detach()
             # gloo cannot all_reduce MPS tensors; at world_size=1 the AVG is a no-op anyway
@@ -406,9 +450,10 @@ class BaseTrainer(ABC):
                 dist.all_reduce(grad_norm.to(self.state.device), op=dist.ReduceOp.AVG)
                 dist.all_reduce(loss.to(self.state.device), op=dist.ReduceOp.AVG)
 
-            logs["grad_norm"] = grad_norm.item()
-            logs["loss"] = loss.item()
-            logs["lr"] = self.lr_scheduler.get_last_lr()[0]
+            with profiler.measure("scalar_readback", enabled=profile_step):
+                logs["grad_norm"] = grad_norm.item()
+                logs["loss"] = loss.item()
+                logs["lr"] = self.lr_scheduler.get_last_lr()[0]
             del loss  # release graph
 
         return logs
