@@ -2,9 +2,9 @@
 """CogKit-owned CogView4 training attention processor.
 
 Diffusers' ``CogView4TrainingAttnProcessor`` rebuilds the same mixed text+latent attention
-mask inside every transformer block. CogView4-6B has 30 blocks, so one 512x512 forward pays
-for 30 identical ``(seq_len, seq_len)`` outer products, and -- because the collated text mask
-is never moved off the host -- 30 host-to-device copies. Gradient checkpointing pays for all
+mask inside every transformer block. CogView4-6B has 28 blocks, so one 512x512 forward pays
+for 28 identical ``(seq_len, seq_len)`` outer products, and -- because the collated text mask
+is never moved off the host -- 28 host-to-device copies. Gradient checkpointing pays for all
 of it a second time during backward.
 
 This processor keeps the upstream masking semantics exactly and changes only *when* the mask
@@ -14,6 +14,13 @@ zero attention bias and ``attn_mask=None`` is therefore the same computation.
 
 Packed training (``batch_flag`` is not None) is delegated to the upstream processor unchanged.
 Its Python loops and scalar materializations need their own profile and parity gate.
+
+Do not expect a speedup from this at 512x512. The 28 rebuilds measure ~25 ms against a
+~3.7 s forward, so the win is under half a percent and sits inside run-to-run noise; the
+measurement is recorded in APPLE_SILICON_PERFORMANCE_PLAN.md Step 3. What this buys is
+correctness-preserving headroom -- the cost grows with sequence length, the mask-drop path
+removes a real ~7% SDPA penalty whenever prompts happen to need no padding, and the mask
+stops being a per-block host-to-device synchronization point.
 """
 
 import torch
@@ -100,7 +107,7 @@ class CogKitCogView4TrainingAttnProcessor:
     A single instance is shared by every ``Attention`` module in the transformer (see
     ``replace_attn_processor``), which is what makes the one-entry cache sufficient: the
     blocks run in sequence over the same masks, so the first block builds and the remaining
-    29 hit.
+    27 hit.
     """
 
     def __init__(self) -> None:

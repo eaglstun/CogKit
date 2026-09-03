@@ -6,9 +6,13 @@ the documented M4 Max 64 GB run.
 **Rule:** a completed MPS run is not a correctness result. Every numerical change must
 retain the CPU-to-MPS parity gates in `tests/test_mps_cpu_parity.py`.
 
-**Current status:** Step 1 instrumentation is implemented on this branch; the real MPS baseline
-run is pending. Enable it by setting `profile_steps: 3` (or more) in `config_mps.yaml`. Keep at
-least one warmup step, and extend the window through a checkpoint when measuring serialization.
+**Current status:** Steps 1-3 are done and recorded below. Step 2 landed the large win
+(gradient checkpointing off on MPS: median step 10.46 s -> 7.10 s). Step 3 landed as a
+correctness-neutral change with no measurable speedup, and its premise is now retired -- do not
+spend more time on attention-mask construction. **Step 4 (inference placement and VAE decode) is
+next, and the CogVideo load-mode benchmark already names VAE decode as 73-78% of warm latency.**
+Enable profiling by setting `profile_steps: 3` (or more) in `config_mps.yaml`. Keep at least one
+warmup step, and extend the window through a checkpoint when measuring serialization.
 
 This plan deliberately starts with measurement. MPS work is asynchronous, so ordinary
 wall-clock timers can report command-encoding time rather than GPU execution time. The
@@ -62,7 +66,7 @@ and unchanged CPU-to-MPS forward parity.
 ## Step 3: Make CogView4 training attention masks device-resident and reusable
 
 The selected Diffusers training attention processor currently creates the same quadratic mixed
-attention mask inside each of the transformer's 30 blocks. First move all masks to the target device
+attention mask inside each of the transformer's 28 blocks. First move all masks to the target device
 once per batch. Then introduce a CogKit-owned processor path that constructs the invariant mask once
 and reuses it across blocks without changing masking semantics.
 
@@ -130,3 +134,77 @@ only the winning number.
 Decision: keep the profiler. Backward is 62% of the median profiled batch and is the first target;
 data loading and scalar readback are not material at this baseline. Proceed to the Step 2
 checkpointing-on/off comparison before changing attention or input code.
+
+### Step 2 accepted — gradient checkpointing off on MPS — 2026-09-03
+
+- Commit: `212d3e4` (branch `perf/mps-step2-step3`)
+- Hardware/runtime: M4 Max 64 GB, macOS 26.5.2, torch 2.12.1, `PYTORCH_ENABLE_MPS_FALLBACK=1`
+- Workload: CogView4-6B LoRA, 512x512 bf16, batch size 1, `strategy: SINGLE`
+- Full 2x2 matrix, raw samples, and method: `docs/benchmarks/APPLE_MPS_TRAINING_STEP_2026-09-03.md`
+  plus `docs/benchmarks/apple_mps_training_step_2026-09-03.json`
+
+| Phase           | checkpointing on | checkpointing off |      Delta |
+| --------------- | ---------------: | ----------------: | ---------: |
+| Forward         |          3.624 s |           3.784 s |      +4.4% |
+| Backward        |          6.466 s |           2.945 s |     -54.5% |
+| Optimizer       |          0.357 s |           0.350 s |      -2.0% |
+| **Median step** |     **10.456 s** |       **7.098 s** | **-32.1%** |
+| MPS reserved    |        15.086 GB |         25.154 GB |   +10.1 GB |
+
+Loss sequence identical across every run (1.29, 1.28, 1.12, 1.27, 1.31), matching the Step 1
+baseline. No out-of-memory event. Backward falling below forward is the expected LoRA shape once
+recompute is gone: frozen base weights mean backward computes activation gradients only.
+
+Decision: **keep.** `gradient_checkpointing: false` is now set in `quickstart/scripts/t2i/config_mps.yaml`
+with the memory cost documented beside it. The `BaseArgs` default stays `True`, so CUDA and
+smaller-memory Macs are unaffected and the fallback is one line of config.
+
+### Step 3 accepted — CogKit-owned attention mask, built once — 2026-09-03
+
+- Commit: `212d3e4`, `src/cogkit/finetune/diffusion/models/cogview/cogview4/attention.py`
+- Same matrix, hardware, and workload as Step 2
+
+`CogKitCogView4TrainingAttnProcessor` moves every mask to the target device once per forward and
+reuses one mask across all 28 blocks instead of rebuilding it per block, dropping the mask
+entirely when every token is valid. Packed training (`batch_flag`) is delegated to the upstream
+processor untouched, as the plan requires.
+
+Measured effect, holding gradient checkpointing fixed:
+
+| Comparison                                  | upstream |   CogKit |       Delta |
+| ------------------------------------------- | -------: | -------: | ----------: |
+| median step, checkpointing on (run A vs C)  | 10.456 s | 10.319 s |       -1.3% |
+| median step, checkpointing on (A vs C2)     | 10.456 s | 10.151 s |       -2.9% |
+| median step, checkpointing off (B vs D)     |  7.098 s |  7.066 s |       -0.5% |
+| two identical CogKit `gc_on` runs (C vs C2) | 10.319 s | 10.151 s | 1.6% spread |
+
+**The effect does not clear the run-to-run spread.** A direct microbenchmark of the removed work
+shows why: one mask rebuild costs 0.90 ms at 512x512 (2.01 ms at 1024x1024), so all 28 rebuilds
+are ~25 ms against a 3.7 s forward -- 0.35% of a step.
+
+**The plan's Step 3 premise was wrong.** Per-block mask construction is not a hotspot at any
+resolution this lane trains at. No further mask work is warranted.
+
+Decision: **keep, but not as a performance result.** Retained because it is provably equivalent
+(`tests/test_cogview4_attention.py` checks outputs _and_ gradients against the upstream processor
+across five mask shapes; the five real training losses are identical), because it removes 27
+per-forward host-to-device mask copies that are also synchronization points, and because it is
+what makes the mask-drop path possible. It is credited with no step-time improvement.
+
+### Supporting measurement — where the training step actually goes
+
+Recorded while accepting Steps 2 and 3, because it redirects Steps 4 and 5.
+
+`aten/src/ATen/native/transformers/attention.cpp` routes MPS to the fused
+`_scaled_dot_product_attention_math_for_mps` **only when grad is off**. With autograd recording,
+MPS training always falls back to the composite `_scaled_dot_product_attention` math path, so
+none of the fused MPS attention kernels ever run during training.
+
+At one CogView4-6B attention block (B=1, H=32, S=1136, D=128, bf16) this is worth measuring
+rather than assuming; see `Attention.mm` for the kernels that are being skipped.
+
+Scale the per-block numbers by 28 layers and compare against the measured 3.75 s forward and
+2.95 s backward: attention is a minority of the step, and the dense-mask and grad-fallback
+penalties are each single-digit percentages of it. **The remaining time is in the transformer's
+linear layers**, which is where a further training-side win has to come from -- not from masks,
+and not from the data loader (data wait is 0.015 s, 0.2% of a step).

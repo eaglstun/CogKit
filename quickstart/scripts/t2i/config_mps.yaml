@@ -35,6 +35,12 @@ enable_packing: false
 # QLoRA/bitsandbytes is CUDA-only; must stay false on MPS
 low_vram: false
 
+# Recompute-free backward. Measured on an M4 Max 64 GB at 512x512 bf16 batch 1:
+# median step 10.46s -> 7.10s (-32%), backward 6.47s -> 2.94s, at the cost of MPS
+# driver-reserved memory 15.1 GB -> 25.2 GB. See APPLE_SILICON_PERFORMANCE_PLAN.md
+# Step 2. Set back to true on a Mac with less memory; the CUDA default is unchanged.
+gradient_checkpointing: false
+
 # CogView4: height/width must be multiples of 32
 train_resolution: [512, 512]  # [Height, Width]
 

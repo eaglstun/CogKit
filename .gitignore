@@ -129,6 +129,8 @@ celerybeat.pid
 # Environments
 .env
 .venv
+# side-by-side venvs for the local PyTorch fork (3.12 and 3.14 lanes)
+.venv-*/
 env/
 venv/
 ENV/

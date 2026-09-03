@@ -1,0 +1,414 @@
+{
+  "runs": [
+    {
+      "label": "A_upstream_gc_on",
+      "attention_processor": "upstream",
+      "gradient_checkpointing": true,
+      "losses": [
+        "1.29",
+        "1.28",
+        "1.12",
+        "1.27",
+        "1.31"
+      ],
+      "phases": {
+        "backward": {
+          "median_seconds": 6.46560649946332,
+          "samples_seconds": [
+            6.216229791985825,
+            6.446046165889129,
+            6.4851668330375105,
+            6.974690709030256
+          ]
+        },
+        "checkpoint": {
+          "median_seconds": 2.921115750214085,
+          "samples_seconds": [
+            2.921115750214085
+          ]
+        },
+        "data_wait": {
+          "median_seconds": 0.01493310451041907,
+          "samples_seconds": [
+            0.013431417057290673,
+            0.020778832957148552,
+            0.014108709059655666,
+            0.015757499961182475
+          ]
+        },
+        "forward": {
+          "median_seconds": 3.623755354085006,
+          "samples_seconds": [
+            3.563110667048022,
+            3.5782732081133872,
+            3.6692375000566244,
+            3.8400624580681324
+          ]
+        },
+        "optimizer": {
+          "median_seconds": 0.3566426869947463,
+          "samples_seconds": [
+            0.36265291599556804,
+            0.3497625000309199,
+            0.3506324579939246,
+            0.42348300013691187
+          ]
+        },
+        "scalar_readback": {
+          "median_seconds": 0.0006214164895936847,
+          "samples_seconds": [
+            0.0005640420131385326,
+            0.0006053750403225422,
+            0.0006374579388648272,
+            0.01696012495085597
+          ]
+        },
+        "train_batch": {
+          "median_seconds": 10.455631604068913,
+          "samples_seconds": [
+            10.144639832898974,
+            10.377050292212516,
+            10.534212915925309,
+            11.257495542056859
+          ]
+        }
+      },
+      "mps_memory_gb_after_epoch": {
+        "memory_allocated": 12.52,
+        "memory_reserved": 15.086,
+        "max_memory_allocated": null,
+        "max_memory_reserved": null
+      }
+    },
+    {
+      "label": "C_cogkit_gc_on",
+      "attention_processor": "cogkit",
+      "gradient_checkpointing": true,
+      "losses": [
+        "1.29",
+        "1.28",
+        "1.12",
+        "1.27",
+        "1.31"
+      ],
+      "phases": {
+        "backward": {
+          "median_seconds": 6.26417916698847,
+          "samples_seconds": [
+            6.363488624803722,
+            6.273084125015885,
+            6.255274208961055,
+            6.212457332992926
+          ]
+        },
+        "checkpoint": {
+          "median_seconds": 2.3484888751991093,
+          "samples_seconds": [
+            2.3484888751991093
+          ]
+        },
+        "data_wait": {
+          "median_seconds": 0.015676707960665226,
+          "samples_seconds": [
+            0.013690875144675374,
+            0.016497707925736904,
+            0.01979395793750882,
+            0.014855707995593548
+          ]
+        },
+        "forward": {
+          "median_seconds": 3.6656929585151374,
+          "samples_seconds": [
+            3.7481925419997424,
+            3.8129722089506686,
+            3.553982083220035,
+            3.5831933750305325
+          ]
+        },
+        "optimizer": {
+          "median_seconds": 0.3489824370481074,
+          "samples_seconds": [
+            0.33928191591985524,
+            0.36027212510816753,
+            0.35596158308908343,
+            0.34200329100713134
+          ]
+        },
+        "scalar_readback": {
+          "median_seconds": 0.000910020899027586,
+          "samples_seconds": [
+            0.001157917082309723,
+            0.0006527090445160866,
+            0.0010575000196695328,
+            0.0007625417783856392
+          ]
+        },
+        "train_batch": {
+          "median_seconds": 10.318794458406046,
+          "samples_seconds": [
+            10.456150125013664,
+            10.44980924995616,
+            10.187779666855931,
+            10.174479958135635
+          ]
+        }
+      },
+      "mps_memory_gb_after_epoch": {
+        "memory_allocated": 12.528,
+        "memory_reserved": 15.086,
+        "max_memory_allocated": null,
+        "max_memory_reserved": null
+      }
+    },
+    {
+      "label": "C2_cogkit_gc_on",
+      "attention_processor": "cogkit",
+      "gradient_checkpointing": true,
+      "losses": [
+        "1.29",
+        "1.28",
+        "1.12",
+        "1.27",
+        "1.31"
+      ],
+      "phases": {
+        "backward": {
+          "median_seconds": 6.184402958024293,
+          "samples_seconds": [
+            6.014906083000824,
+            6.185056250076741,
+            6.203764999983832,
+            6.183749665971845
+          ]
+        },
+        "checkpoint": {
+          "median_seconds": 2.0801718330476433,
+          "samples_seconds": [
+            2.0801718330476433
+          ]
+        },
+        "data_wait": {
+          "median_seconds": 0.015556124970316887,
+          "samples_seconds": [
+            0.011970875086262822,
+            0.017420874908566475,
+            0.013691375032067299,
+            0.022176166996359825
+          ]
+        },
+        "forward": {
+          "median_seconds": 3.637602312490344,
+          "samples_seconds": [
+            3.8033983749337494,
+            3.336578874848783,
+            3.56409191689454,
+            3.711112708086148
+          ]
+        },
+        "optimizer": {
+          "median_seconds": 0.35309364611748606,
+          "samples_seconds": [
+            0.3506749579682946,
+            0.35138804209418595,
+            0.35479925014078617,
+            0.35771895898506045
+          ]
+        },
+        "scalar_readback": {
+          "median_seconds": 0.0007165834540501237,
+          "samples_seconds": [
+            0.0006008748896420002,
+            0.0007976251654326916,
+            0.0006444999016821384,
+            0.0007886670064181089
+          ]
+        },
+        "train_batch": {
+          "median_seconds": 10.15105531248264,
+          "samples_seconds": [
+            10.174152124905959,
+            9.889698209008202,
+            10.127958500059322,
+            10.25537145906128
+          ]
+        }
+      },
+      "mps_memory_gb_after_epoch": {
+        "memory_allocated": 12.528,
+        "memory_reserved": 15.086,
+        "max_memory_allocated": null,
+        "max_memory_reserved": null
+      }
+    },
+    {
+      "label": "B_upstream_gc_off",
+      "attention_processor": "upstream",
+      "gradient_checkpointing": false,
+      "losses": [
+        "1.29",
+        "1.28",
+        "1.12",
+        "1.27",
+        "1.31"
+      ],
+      "phases": {
+        "backward": {
+          "median_seconds": 2.944692124496214,
+          "samples_seconds": [
+            3.4383274579886347,
+            2.938252457883209,
+            2.951131791109219,
+            2.9315895410254598
+          ]
+        },
+        "checkpoint": {
+          "median_seconds": 4.072344083106145,
+          "samples_seconds": [
+            4.072344083106145
+          ]
+        },
+        "data_wait": {
+          "median_seconds": 0.01627645851112902,
+          "samples_seconds": [
+            0.016009957995265722,
+            0.015662082936614752,
+            0.01654295902699232,
+            0.018797416938468814
+          ]
+        },
+        "forward": {
+          "median_seconds": 3.783992333104834,
+          "samples_seconds": [
+            4.408667292213067,
+            3.5944731670897454,
+            3.607935333158821,
+            3.960049333050847
+          ]
+        },
+        "optimizer": {
+          "median_seconds": 0.350353728979826,
+          "samples_seconds": [
+            0.3835297080222517,
+            0.35136504098773,
+            0.3493424169719219,
+            0.3465902090538293
+          ]
+        },
+        "scalar_readback": {
+          "median_seconds": 0.0007927714614197612,
+          "samples_seconds": [
+            0.0011250830721110106,
+            0.0005255830474197865,
+            0.0006229588761925697,
+            0.0009625840466469526
+          ]
+        },
+        "train_batch": {
+          "median_seconds": 7.097564021125436,
+          "samples_seconds": [
+            8.234186416957527,
+            6.952657250221819,
+            6.910990083124489,
+            7.242470792029053
+          ]
+        }
+      },
+      "mps_memory_gb_after_epoch": {
+        "memory_allocated": 12.52,
+        "memory_reserved": 25.154,
+        "max_memory_allocated": null,
+        "max_memory_reserved": null
+      }
+    },
+    {
+      "label": "D_cogkit_gc_off",
+      "attention_processor": "cogkit",
+      "gradient_checkpointing": false,
+      "losses": [
+        "1.29",
+        "1.28",
+        "1.12",
+        "1.27",
+        "1.31"
+      ],
+      "phases": {
+        "backward": {
+          "median_seconds": 2.953337874962017,
+          "samples_seconds": [
+            3.3508809169288725,
+            2.927683125017211,
+            2.978992624906823,
+            2.9011630839668214
+          ]
+        },
+        "checkpoint": {
+          "median_seconds": 2.539653084008023,
+          "samples_seconds": [
+            2.539653084008023
+          ]
+        },
+        "data_wait": {
+          "median_seconds": 0.015285000088624656,
+          "samples_seconds": [
+            0.014259125106036663,
+            0.01740054110996425,
+            0.01631087507121265,
+            0.014007457997649908
+          ]
+        },
+        "forward": {
+          "median_seconds": 3.7508403124520555,
+          "samples_seconds": [
+            4.276894832961261,
+            3.9006061248946935,
+            3.6010745000094175,
+            3.5175610000733286
+          ]
+        },
+        "optimizer": {
+          "median_seconds": 0.35574383346829563,
+          "samples_seconds": [
+            0.35990666691213846,
+            0.3515810000244528,
+            0.34217608300969005,
+            0.38058095797896385
+          ]
+        },
+        "scalar_readback": {
+          "median_seconds": 0.0006229375721886754,
+          "samples_seconds": [
+            0.0006090421229600906,
+            0.0006368330214172602,
+            0.0005579160060733557,
+            0.005872458918020129
+          ]
+        },
+        "train_batch": {
+          "median_seconds": 7.066172061953694,
+          "samples_seconds": [
+            7.990111459046602,
+            7.187894665868953,
+            6.944449458038434,
+            6.832237165886909
+          ]
+        }
+      },
+      "mps_memory_gb_after_epoch": {
+        "memory_allocated": 12.528,
+        "memory_reserved": 25.248,
+        "max_memory_allocated": null,
+        "max_memory_reserved": null
+      }
+    }
+  ],
+  "provenance": {
+    "recorded": "2026-09-03",
+    "host": "MacBook Pro Mac16,5, Apple M4 Max, 16 CPU cores, 64 GB",
+    "os": "macOS-26.5.2-arm64-arm-64bit",
+    "torch": "2.12.1",
+    "python": "3.12.13",
+    "commit": "212d3e4ea5e1cb32bf4c89a3c2d144e4b13504a4",
+    "workload": "CogView4-6B LoRA, 512x512, bf16, batch 1, strategy SINGLE, COGKIT_DEVICE=mps",
+    "profile_window": "1 warmup step then 4 synchronized steps; step 5 included the DCP save"
+  }
+}

@@ -143,26 +143,47 @@ as plain LoRA and must **not** be run through `merge.py`.
 
 ## Apple Silicon (MPS) lane
 
-This fork supports single-device Mac training (merged to `main` 2026-07-08; developed on
-`apple-silicon-mps`, plan/history: `APPLE_METAL_PORT_PLAN.md`). **Status: Phases 1–2 done
-— cogview4-6b LoRA verified correct on MPS. Phase 3 (inference on MPS) is the next piece
-of work.** Env: `.venv` built with uv (not PDM), Python 3.12. Key facts:
+This fork trains CogView4 and runs CogView4/CogVideoX inference on a single Apple Silicon
+device. **Status: training and inference both work; performance work is in progress —
+`APPLE_SILICON_PERFORMANCE_PLAN.md` Steps 1–3 are accepted and Step 4 is next.** Each phase has
+a plan with an acceptance record (`APPLE_METAL_PORT_PLAN.md` for the training port and MPS
+inference, `COGVIDEO_MPS_INFERENCE_PLAN.md` for video, the performance plan above); dated
+measurements and raw JSON live in `docs/benchmarks/` — take any number from there.
+
+Env: `.venv` built with uv (not PDM), Python 3.12, pinned torch 2.12.1 — the reference for
+every gate. `.venv-pytorch-fork` runs a local PyTorch fork from `~/Documents/dev/pytorch` and
+is faster at inference, but the delta spans a major version and is unattributed. Key facts:
 
 - `strategy: "SINGLE"` = no FSDP/DDP wrap; still launched via **torchrun at
   `--nproc_per_node=1`** over a `gloo` process group (DCP checkpointing and the rank
   helpers depend on it). Launch: `quickstart/scripts/t2i/start_train_mps.sh`
   (`config_mps.yaml`). `COGKIT_DEVICE` env forces the device (`cpu` = parity oracle);
   otherwise auto-detect cuda → mps → cpu in `finetune/utils/dist.py::get_device`.
+- **`gradient_checkpointing: false` in `config_mps.yaml` is deliberate, not a leftover** — it
+  trades MPS memory for a large step-time win on a 64 GB machine. Set it back to `true` on a
+  smaller Mac; the `BaseArgs` default is still `True`, so CUDA is unaffected.
+- CogView4 training installs `CogKitCogView4TrainingAttnProcessor`
+  (`finetune/diffusion/models/cogview/cogview4/attention.py`) over the diffusers one. Same
+  masking semantics, built once per forward instead of per block; packed training still
+  delegates upstream. Changes there must keep `tests/test_cogview4_attention.py` green — it
+  checks outputs _and_ gradients against the upstream processor.
 - QLoRA (`low_vram: true`) and FSDP strategies **hard-error on non-CUDA**
   (`BaseTrainer._check_device_compat`). bitsandbytes is platform-conditional in
   `pyproject.toml` (no macOS wheel); the `BitsAndBytesConfig` in each `lora_trainer.py`
   must stay lazily constructed inside the `low_vram` branch.
-- Video is unsupported on this lane: torchvision ≥0.23 removed `VideoReader`, so the
-  dataset modules guard that import (type-annotation use only) and `cv2` is imported
-  lazily. t2v/i2v fail loudly at use-time.
+- Video _training_ is unsupported: torchvision ≥0.23 removed `VideoReader`, so the dataset
+  modules guard that import (type-annotation use only) and `cv2` is imported lazily. t2v/i2v
+  training fails loudly at use-time. Video _inference_ on MPS is a separate lane and works.
 - **Correctness rule:** bf16/fp16 on MPS can be silently wrong. A completed run is not
-  evidence — only CPU parity is (`tests/test_mps_cpu_parity.py`, heavy, needs cached
-  weights + the precompute cache). Unit lane tests: `tests/test_single_device_lane.py`.
+  evidence — only CPU parity is (`tests/test_mps_cpu_parity.py` for training,
+  `tests/test_inference_mps.py` for inference; both heavy, both need cached weights + the
+  precompute cache). Cheap unit lanes: `tests/test_single_device_lane.py`,
+  `tests/test_cogview4_attention.py`.
+- **SDPA has no fused MPS backward.** `attention.cpp` routes MPS to the fused kernel only when
+  grad is off, so training always runs the composite math path. Do not credit training with an
+  inference kernel win.
+- Timing on MPS needs wall clock plus an explicit `torch.mps.synchronize()` — `ProfilerActivity.MPS`
+  does not exist and `torch.mps.Event` timing is unreliable. See `finetune/utils/performance.py`.
 - A dead torchrun can leave port 29501 held: `lsof -ti :29501 | xargs kill -9`.
 
 ## Conventions

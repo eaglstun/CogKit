@@ -139,14 +139,14 @@ def test_padded_mask_matches_the_upstream_matrix() -> None:
 
 
 def test_mask_is_built_once_across_blocks() -> None:
-    """CogView4-6B has 30 blocks sharing one processor instance; only the first should build."""
+    """CogView4-6B has 28 blocks sharing one processor instance; only the first should build."""
     attn = _attention_module()
     hidden_states, encoder_hidden_states = _inputs()
     cogkit = CogKitCogView4TrainingAttnProcessor()
     text_attn_mask = _padded_text_mask()
 
     with torch.no_grad():
-        for _ in range(30):
+        for _ in range(28):
             cogkit(
                 attn,
                 hidden_states,
