@@ -1,6 +1,6 @@
 # CogVideo Inference on Apple Silicon (MPS)
 
-**Status:** in progress — Steps 1–2 complete; Step 3 T2V component parity green 2026-09-02
+**Status:** in progress — Steps 1–4 complete for CogVideoX-2b T2V 2026-09-02
 **Branch:** `perf/apple-silicon-training`
 **Primary target:** `THUDM/CogVideoX-2b`, text-to-video, bfloat16
 **Second target:** `THUDM/CogVideoX-5b-I2V`, image-to-video, bfloat16
@@ -52,7 +52,23 @@
   the micro VAE fixture supplies a practical per-change gate while the canonical composed
   T2V run still covers 480×720 decode on MPS.
 
-Next: add dated machine-readable results and measure warm latency plus peak memory by load mode.
+### 2026-09-02 — Step 4 load-mode latency and memory
+
+- Added `tools/benchmark_cogvideo_mps.py`, which runs every load mode in an isolated process,
+  records one cold plus five warm requests, synchronizes every timed MPS boundary, and captures
+  prompt, transformer, scheduler, VAE, postprocess, MPS allocation, and peak-RSS measurements.
+- The five-run warm medians were 70.80 s for sequential CPU offload, 72.18 s for direct MPS,
+  and 80.57 s for model CPU offload. A reverse-order confirmation measured 82.56 s sequential
+  versus 83.86 s direct; the broad shift means their small speed difference is machine-state
+  sensitive, while their relative ranking persisted.
+- Sequential CPU offload observed 10.96 GB of driver allocation versus 43.11 GB for model
+  offload and 61.37 GB for direct MPS. It is the recommended 64 GB default; direct MPS is an
+  experimental low-headroom option.
+- VAE decode accounted for roughly 73–78% of warm latency, making it the next measured
+  optimization target. Full methodology and caveats are in
+  `docs/benchmarks/COGVIDEO_MPS_LOAD_MODES_2026-09-02.md`; raw results are in the adjacent JSON.
+
+Next: Step 5 starts with CogVideoX-5b-I2V smoke and input-image/VAE-encode parity.
 
 ## Goal
 
@@ -213,6 +229,6 @@ verified or explicitly unverified—never implied by the older-model result.
 - [ ] `CogVideoX-5b-I2V` produces a valid conditioned MP4 on MPS.
 - [x] CPU↔MPS parity passes at text, transformer, scheduler, VAE, and composed-output stages.
 - [ ] Unsupported/fallback operations are explicit; no success claim relies on an unknown CPU path.
-- [ ] Recommended offload mode is backed by repeatable warm timing and peak-footprint data.
+- [x] Recommended offload mode is backed by repeatable warm timing and peak-footprint data.
 - [ ] Short-video CLI controls, unit tests, benchmark records, and Apple Silicon docs are landed.
 - [ ] CogView inference and training parity tests remain green.
