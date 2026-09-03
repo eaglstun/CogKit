@@ -1,0 +1,110 @@
+[
+  {
+    "runtime": "baseline",
+    "torch": "2.12.1",
+    "torch_git": "7269437d655783a26cba32aa88195b741ff496aa",
+    "load_type": "mps",
+    "size": 512,
+    "repeats": 5,
+    "fixed_overhead_s": -0.141,
+    "marginal_per_step_s": 2.457,
+    "steps": {
+      "1": {
+        "median": 2.375,
+        "min": 2.342,
+        "max": 2.429
+      },
+      "4": {
+        "median": 9.588,
+        "min": 9.447,
+        "max": 9.679
+      },
+      "8": {
+        "median": 19.562,
+        "min": 19.3,
+        "max": 20.005
+      }
+    }
+  },
+  {
+    "runtime": "fork",
+    "torch": "2.15.0a0+git9737e28",
+    "torch_git": "9737e2892a58d69b6cabdaedb33c4bd5809c54da",
+    "load_type": "mps",
+    "size": 512,
+    "repeats": 5,
+    "fixed_overhead_s": -0.118,
+    "marginal_per_step_s": 2.224,
+    "steps": {
+      "1": {
+        "median": 2.166,
+        "min": 2.123,
+        "max": 2.198
+      },
+      "4": {
+        "median": 8.675,
+        "min": 8.614,
+        "max": 8.753
+      },
+      "8": {
+        "median": 17.721,
+        "min": 17.577,
+        "max": 18.033
+      }
+    }
+  },
+  {
+    "runtime": "baseline",
+    "torch": "2.12.1",
+    "torch_git": "7269437d655783a26cba32aa88195b741ff496aa",
+    "load_type": "cpu_model_offload",
+    "size": 512,
+    "repeats": 5,
+    "fixed_overhead_s": 1.088,
+    "marginal_per_step_s": 2.32,
+    "steps": {
+      "1": {
+        "median": 3.44,
+        "min": 3.41,
+        "max": 3.551
+      },
+      "4": {
+        "median": 10.312,
+        "min": 10.217,
+        "max": 10.446
+      },
+      "8": {
+        "median": 19.674,
+        "min": 19.564,
+        "max": 19.7
+      }
+    }
+  },
+  {
+    "runtime": "fork",
+    "torch": "2.15.0a0+git9737e28",
+    "torch_git": "9737e2892a58d69b6cabdaedb33c4bd5809c54da",
+    "load_type": "cpu_model_offload",
+    "size": 512,
+    "repeats": 5,
+    "fixed_overhead_s": 1.163,
+    "marginal_per_step_s": 2.052,
+    "steps": {
+      "1": {
+        "median": 3.261,
+        "min": 3.256,
+        "max": 3.285
+      },
+      "4": {
+        "median": 9.293,
+        "min": 9.24,
+        "max": 9.553
+      },
+      "8": {
+        "median": 17.616,
+        "min": 17.513,
+        "max": 17.64
+      }
+    }
+  }
+]
