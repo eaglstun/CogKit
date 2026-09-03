@@ -15,9 +15,19 @@ the prompt token limit and decoded square resolution (both default to 64).
 Set COGKIT_RUN_MPS_INFERENCE_REAL_PROMPT_PARITY=1 to compose real prompt encoding with
 the transformer and scheduler. Its text-length and resolution knobs use the same defaults.
 COGKIT_MPS_REAL_PROMPT_DECODE=1 also runs VAE decode and checks the final tensor image.
+
+Set COGKIT_RUN_MPS_INFERENCE_BENCHMARK=1 for the MPS step-cost benchmark. Unlike the parity
+tests above, which time a single whole-pipeline call and are dominated by fixed overhead,
+this one warms up in process, sweeps several step counts, and regresses wall time against
+step count to separate fixed pipeline overhead from marginal per-step compute. Knobs:
+COGKIT_MPS_BENCH_SIZE (default 512), COGKIT_MPS_BENCH_STEPS (comma list, default "1,4,8"),
+COGKIT_MPS_BENCH_WARMUP (default 1), COGKIT_MPS_BENCH_REPEATS (default 5), and
+COGKIT_MPS_BENCH_LOAD_TYPE (default "mps"; "cpu_model_offload" reproduces the parity tests'
+offload behaviour, which shuttles submodules per call and inflates both cost and variance).
 """
 
 import os
+import statistics
 import time
 from typing import Any, cast
 
@@ -543,3 +553,99 @@ def test_cogview4_one_step_cpu_mps_latent_parity():
     assert latent_mean_relative_error < INFERENCE_LATENT_MEAN_RTOL
     assert latent_normalized_rmse < INFERENCE_LATENT_NORMALIZED_RMSE
     assert latent_cosine_similarity >= INFERENCE_LATENT_COSINE_MIN
+
+
+@pytest.mark.skipif(
+    os.environ.get("COGKIT_RUN_MPS_INFERENCE_BENCHMARK") != "1",
+    reason="set COGKIT_RUN_MPS_INFERENCE_BENCHMARK=1 to run the MPS step-cost benchmark",
+)
+def test_cogview4_mps_step_cost_benchmark():
+    """Measure marginal MPS cost per denoising step, separated from fixed overhead.
+
+    A single-step whole-pipeline timing cannot distinguish a change in kernel performance
+    from a change in setup cost, and its run-to-run spread exceeds the effect sizes worth
+    measuring. Sweeping step counts and taking the slope isolates the compute that actually
+    scales with work done.
+    """
+    if not torch.backends.mps.is_available():
+        pytest.skip("MPS is not available")
+
+    model = os.environ.get("COGKIT_MPS_MODEL_PATH", "THUDM/CogView4-6B")
+    size = int(os.environ.get("COGKIT_MPS_BENCH_SIZE", "512"))
+    if size % 32 != 0:
+        pytest.fail("COGKIT_MPS_BENCH_SIZE must be divisible by 32")
+    step_counts = sorted({int(part) for part in os.environ["COGKIT_MPS_BENCH_STEPS"].split(",")}) \
+        if os.environ.get("COGKIT_MPS_BENCH_STEPS") else [1, 4, 8]
+    if any(steps < 1 for steps in step_counts):
+        pytest.fail("COGKIT_MPS_BENCH_STEPS entries must be >= 1")
+    warmup = int(os.environ.get("COGKIT_MPS_BENCH_WARMUP", "1"))
+    repeats = int(os.environ.get("COGKIT_MPS_BENCH_REPEATS", "5"))
+    if repeats < 1:
+        pytest.fail("COGKIT_MPS_BENCH_REPEATS must be >= 1")
+    load_type = cast(LoadType, os.environ.get("COGKIT_MPS_BENCH_LOAD_TYPE", "mps"))
+
+    pipeline = load_pipeline(model, dtype=torch.bfloat16)
+    before_generation(pipeline, load_type)
+
+    generator = torch.Generator(device="cpu").manual_seed(42)
+    prompt_embeds = torch.randn((1, 16, 4096), generator=generator, dtype=torch.bfloat16).to("mps")
+    latents = torch.randn((1, 16, size // 8, size // 8), generator=generator, dtype=torch.float32)
+
+    def run(steps: int) -> torch.Tensor:
+        output = pipeline(
+            prompt=None,
+            prompt_embeds=prompt_embeds,
+            latents=latents.clone(),
+            guidance_scale=1.0,
+            height=size,
+            width=size,
+            num_inference_steps=steps,
+            output_type="latent",
+        ).images
+        # MPS dispatch is asynchronous; without this the timer measures queue submission.
+        torch.mps.synchronize()
+        return output
+
+    # Discarded: absorbs Metal shader compilation and first-touch allocation.
+    for _ in range(warmup):
+        run(min(step_counts))
+
+    samples: dict[int, list[float]] = {}
+    for steps in step_counts:
+        timings: list[float] = []
+        for _ in range(repeats):
+            torch.mps.synchronize()
+            started = time.monotonic()
+            output = run(steps)
+            timings.append(time.monotonic() - started)
+        assert torch.isfinite(output.float()).all()
+        samples[steps] = sorted(timings)
+
+    medians = {steps: statistics.median(values) for steps, values in samples.items()}
+
+    # Least-squares slope of wall time against step count: intercept is the fixed
+    # pipeline overhead, slope is the per-step compute that optimization work moves.
+    fixed_overhead = float("nan")
+    marginal_per_step = float("nan")
+    if len(step_counts) >= 2:
+        mean_steps = statistics.mean(step_counts)
+        mean_time = statistics.mean(medians[steps] for steps in step_counts)
+        denominator = sum((steps - mean_steps) ** 2 for steps in step_counts)
+        marginal_per_step = (
+            sum((steps - mean_steps) * (medians[steps] - mean_time) for steps in step_counts)
+            / denominator
+        )
+        fixed_overhead = mean_time - marginal_per_step * mean_steps
+
+    per_step_counts = " ".join(
+        f"steps{steps}_median={medians[steps]:.3f}s "
+        f"steps{steps}_min={samples[steps][0]:.3f}s "
+        f"steps{steps}_max={samples[steps][-1]:.3f}s"
+        for steps in step_counts
+    )
+    print(
+        f"bench torch={torch.__version__} git={torch.version.git_version} "
+        f"load_type={load_type} size={size} warmup={warmup} repeats={repeats} "
+        f"{per_step_counts} "
+        f"fixed_overhead={fixed_overhead:.3f}s marginal_per_step={marginal_per_step:.3f}s"
+    )

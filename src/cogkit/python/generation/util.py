@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import torch
+from torch import nn
 from diffusers import (
     CogVideoXDPMScheduler,
     CogVideoXImageToVideoPipeline,
@@ -9,12 +10,33 @@ from diffusers import (
     CogView4Pipeline,
 )
 
+from cogkit.logging import get_logger
 from cogkit.types import LoadType
 from cogkit.utils import get_device
 
 TVideoPipeline = CogVideoXPipeline | CogVideoXImageToVideoPipeline
 TPipeline = CogView4Pipeline | TVideoPipeline
 CogviewPipline = CogView4Pipeline | CogView4ControlPipeline
+_COGKIT_LOAD_TYPE_ATTR = "_cogkit_load_type"
+_logger = get_logger(__name__)
+
+
+def _convert_mps_float64_buffers(pipeline: TPipeline) -> list[str]:
+    """Convert registered buffers that MPS cannot represent, leaving parameters untouched."""
+    converted = []
+    for component_name, component in getattr(pipeline, "components", {}).items():
+        if not isinstance(component, nn.Module):
+            continue
+        for module_name, module in component.named_modules():
+            for buffer_name, buffer in module.named_buffers(recurse=False):
+                if buffer.dtype != torch.float64:
+                    continue
+                setattr(module, buffer_name, buffer.float())
+                qualified_name = ".".join(
+                    part for part in (component_name, module_name, buffer_name) if part
+                )
+                converted.append(qualified_name)
+    return converted
 
 
 def _is_cogvideox1_0(pipeline: TVideoPipeline) -> bool:
@@ -141,30 +163,48 @@ def before_generation(
     pipeline: TPipeline,
     load_type: LoadType = "cpu_model_offload",
 ) -> None:
-    if isinstance(pipeline, TVideoPipeline):
+    if isinstance(pipeline, TVideoPipeline) and not isinstance(
+        pipeline.scheduler, CogVideoXDPMScheduler
+    ):
         pipeline.scheduler = CogVideoXDPMScheduler.from_config(
             pipeline.scheduler.config, timestep_spacing="trailing"
         )
+
+    if getattr(pipeline, _COGKIT_LOAD_TYPE_ATTR, None) == load_type:
+        return
 
     if load_type in ("cuda", "mps"):
         if load_type == "cuda" and not torch.cuda.is_available():
             raise RuntimeError("CUDA inference was requested, but CUDA is not available")
         if load_type == "mps" and not torch.backends.mps.is_available():
             raise RuntimeError("MPS inference was requested, but MPS is not available")
+        if load_type == "mps":
+            converted = _convert_mps_float64_buffers(pipeline)
+            if converted:
+                _logger.info("Converted MPS-incompatible float64 buffers: %s", converted)
         pipeline.remove_all_hooks()
         pipeline.to(load_type)
     elif load_type == "cpu_model_offload":
         device = get_device()
         if device.type == "cpu":
             raise RuntimeError("CPU model offload requires a CUDA or MPS accelerator")
+        if device.type == "mps":
+            converted = _convert_mps_float64_buffers(pipeline)
+            if converted:
+                _logger.info("Converted MPS-incompatible float64 buffers: %s", converted)
         pipeline.enable_model_cpu_offload(device=device)
     elif load_type == "sequential_cpu_offload":
         device = get_device()
         if device.type == "cpu":
             raise RuntimeError("Sequential CPU offload requires a CUDA or MPS accelerator")
+        if device.type == "mps":
+            converted = _convert_mps_float64_buffers(pipeline)
+            if converted:
+                _logger.info("Converted MPS-incompatible float64 buffers: %s", converted)
         pipeline.enable_sequential_cpu_offload(device=device)
     else:
         raise ValueError(f"Unsupported offload type: {load_type}")
     if hasattr(pipeline, "vae"):
         pipeline.vae.enable_slicing()
         pipeline.vae.enable_tiling()
+    setattr(pipeline, _COGKIT_LOAD_TYPE_ATTR, load_type)

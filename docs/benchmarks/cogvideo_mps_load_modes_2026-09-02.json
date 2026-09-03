@@ -1,0 +1,1613 @@
+[
+  {
+    "status": "ok",
+    "provenance": {
+      "timestamp": "2026-09-02T22:32:26-0600",
+      "git_revision": "ae4cddfbbd07c3ff5b96dfbb69d57ceec4e3de67",
+      "python": "3.12.13",
+      "torch": "2.12.1",
+      "torch_git": "7269437d655783a26cba32aa88195b741ff496aa",
+      "diffusers": "0.40.0.dev0",
+      "transformers": "4.57.6",
+      "accelerate": "1.14.0",
+      "platform": "macOS-26.5.2-arm64-arm-64bit",
+      "machine": "arm64",
+      "fallback_enabled": false
+    },
+    "config": {
+      "model": "THUDM/CogVideoX-2b",
+      "load_type": "cpu_model_offload",
+      "dtype": "bfloat16",
+      "height": 480,
+      "width": 720,
+      "frames": 9,
+      "steps": 1,
+      "guidance_scale": 6.0,
+      "seed": 42,
+      "warm_repeats": 5
+    },
+    "load_seconds": 3.117674458073452,
+    "prepare_seconds": 0.023013291880488396,
+    "memory_after_load": {
+      "current_allocated_bytes": 0,
+      "driver_allocated_bytes": 475136,
+      "process_peak_rss_bytes": 17960239104
+    },
+    "memory_after_prepare": {
+      "current_allocated_bytes": 0,
+      "driver_allocated_bytes": 475136,
+      "process_peak_rss_bytes": 17960239104
+    },
+    "cold_request": {
+      "request": "cold",
+      "total_seconds": 81.7363221659325,
+      "stage_seconds": {
+        "text_encode": 1.427088167052716,
+        "transformer": 16.73740716697648,
+        "scheduler": 0.00839362503029406,
+        "vae_decode": 63.15429720794782,
+        "postprocess": 0.00832666689530015
+      },
+      "stage_calls": {
+        "text_encode": 1,
+        "transformer": 1,
+        "scheduler": 1,
+        "vae_decode": 1,
+        "postprocess": 1
+      },
+      "unattributed_seconds": 0.400809332029894,
+      "output_shape": [
+        1,
+        9,
+        3,
+        480,
+        720
+      ],
+      "fps": 8,
+      "memory_start": {
+        "current_allocated_bytes": 0,
+        "driver_allocated_bytes": 475136,
+        "process_peak_rss_bytes": 17960239104
+      },
+      "memory_end": {
+        "current_allocated_bytes": 22118912,
+        "driver_allocated_bytes": 35583393792,
+        "process_peak_rss_bytes": 17960239104
+      }
+    },
+    "warm_requests": [
+      {
+        "request": "warm_1",
+        "total_seconds": 82.78965683397837,
+        "stage_seconds": {
+          "text_encode": 2.177771625109017,
+          "transformer": 16.134250541916117,
+          "scheduler": 0.00926437508314848,
+          "vae_decode": 64.11313499999233,
+          "postprocess": 0.0021723750978708267
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.35306291677989066,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 512,
+          "driver_allocated_bytes": 35583393792,
+          "process_peak_rss_bytes": 17960239104
+        },
+        "memory_end": {
+          "current_allocated_bytes": 22118912,
+          "driver_allocated_bytes": 35583393792,
+          "process_peak_rss_bytes": 17960239104
+        }
+      },
+      {
+        "request": "warm_2",
+        "total_seconds": 80.7672272499185,
+        "stage_seconds": {
+          "text_encode": 2.326092458097264,
+          "transformer": 16.139630499994382,
+          "scheduler": 0.00519666587933898,
+          "vae_decode": 61.878517041914165,
+          "postprocess": 0.0027263329830020666
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.41506425105035305,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 512,
+          "driver_allocated_bytes": 35583393792,
+          "process_peak_rss_bytes": 17960239104
+        },
+        "memory_end": {
+          "current_allocated_bytes": 22118912,
+          "driver_allocated_bytes": 35583393792,
+          "process_peak_rss_bytes": 17960239104
+        }
+      },
+      {
+        "request": "warm_3",
+        "total_seconds": 80.56519666709937,
+        "stage_seconds": {
+          "text_encode": 2.060353209031746,
+          "transformer": 19.818731250008568,
+          "scheduler": 0.0054336669854819775,
+          "vae_decode": 58.41183266718872,
+          "postprocess": 0.002486333018168807
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.2663595408666879,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 512,
+          "driver_allocated_bytes": 35583393792,
+          "process_peak_rss_bytes": 17960239104
+        },
+        "memory_end": {
+          "current_allocated_bytes": 22118912,
+          "driver_allocated_bytes": 35583393792,
+          "process_peak_rss_bytes": 17960239104
+        }
+      },
+      {
+        "request": "warm_4",
+        "total_seconds": 74.51624120795168,
+        "stage_seconds": {
+          "text_encode": 3.134320499841124,
+          "transformer": 15.446073665982112,
+          "scheduler": 0.006239250069484115,
+          "vae_decode": 55.61780329188332,
+          "postprocess": 0.002692792098969221
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.30911170807667077,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 512,
+          "driver_allocated_bytes": 35583393792,
+          "process_peak_rss_bytes": 17960239104
+        },
+        "memory_end": {
+          "current_allocated_bytes": 22118912,
+          "driver_allocated_bytes": 35583393792,
+          "process_peak_rss_bytes": 17960239104
+        }
+      },
+      {
+        "request": "warm_5",
+        "total_seconds": 74.76996087492444,
+        "stage_seconds": {
+          "text_encode": 3.22526920796372,
+          "transformer": 16.159966832958162,
+          "scheduler": 0.006486583035439253,
+          "vae_decode": 55.08588854200207,
+          "postprocess": 0.0023950000759214163
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.2899547088891268,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 512,
+          "driver_allocated_bytes": 35583393792,
+          "process_peak_rss_bytes": 17960239104
+        },
+        "memory_end": {
+          "current_allocated_bytes": 22118912,
+          "driver_allocated_bytes": 34509651968,
+          "process_peak_rss_bytes": 17960239104
+        }
+      }
+    ],
+    "warm_summary": {
+      "total": {
+        "count": 5,
+        "median_seconds": 80.56519666709937,
+        "mean_seconds": 78.68165656677448,
+        "min_seconds": 74.51624120795168,
+        "max_seconds": 82.78965683397837,
+        "standard_deviation_seconds": 3.388953905748027,
+        "coefficient_of_variation": 0.043071715233549204
+      },
+      "stages": {
+        "text_encode": {
+          "count": 5,
+          "median_seconds": 2.326092458097264,
+          "mean_seconds": 2.584761400008574,
+          "min_seconds": 2.060353209031746,
+          "max_seconds": 3.22526920796372,
+          "standard_deviation_seconds": 0.49392706048690366,
+          "coefficient_of_variation": 0.1910919361784284
+        },
+        "transformer": {
+          "count": 5,
+          "median_seconds": 16.139630499994382,
+          "mean_seconds": 16.739730558171868,
+          "min_seconds": 15.446073665982112,
+          "max_seconds": 19.818731250008568,
+          "standard_deviation_seconds": 1.5631151923018531,
+          "coefficient_of_variation": 0.09337755986393605
+        },
+        "scheduler": {
+          "count": 5,
+          "median_seconds": 0.006239250069484115,
+          "mean_seconds": 0.0065241082105785605,
+          "min_seconds": 0.00519666587933898,
+          "max_seconds": 0.00926437508314848,
+          "standard_deviation_seconds": 0.0014520867770472985,
+          "coefficient_of_variation": 0.22257245437664605
+        },
+        "vae_decode": {
+          "count": 5,
+          "median_seconds": 58.41183266718872,
+          "mean_seconds": 59.02143530859612,
+          "min_seconds": 55.08588854200207,
+          "max_seconds": 64.11313499999233,
+          "standard_deviation_seconds": 3.508081424821154,
+          "coefficient_of_variation": 0.059437412975116566
+        },
+        "postprocess": {
+          "count": 5,
+          "median_seconds": 0.002486333018168807,
+          "mean_seconds": 0.0024945666547864674,
+          "min_seconds": 0.0021723750978708267,
+          "max_seconds": 0.0027263329830020666,
+          "standard_deviation_seconds": 0.00020337042723196386,
+          "coefficient_of_variation": 0.0815253530474904
+        }
+      }
+    },
+    "stage_memory_samples": [
+      {
+        "request": "cold",
+        "stage": "text_encode",
+        "current_allocated_bytes": 9528324096,
+        "driver_allocated_bytes": 9681223680,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "cold",
+        "stage": "transformer",
+        "current_allocated_bytes": 3532249600,
+        "driver_allocated_bytes": 15337357312,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "cold",
+        "stage": "scheduler",
+        "current_allocated_bytes": 3538211328,
+        "driver_allocated_bytes": 15337357312,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "cold",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 467395072,
+        "driver_allocated_bytes": 40977268736,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "cold",
+        "stage": "postprocess",
+        "current_allocated_bytes": 488476672,
+        "driver_allocated_bytes": 40977268736,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_1",
+        "stage": "text_encode",
+        "current_allocated_bytes": 9531414528,
+        "driver_allocated_bytes": 43107975168,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_1",
+        "stage": "transformer",
+        "current_allocated_bytes": 3532249600,
+        "driver_allocated_bytes": 15341682688,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_1",
+        "stage": "scheduler",
+        "current_allocated_bytes": 3538211328,
+        "driver_allocated_bytes": 15341682688,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_1",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 467395072,
+        "driver_allocated_bytes": 40977268736,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_1",
+        "stage": "postprocess",
+        "current_allocated_bytes": 488476672,
+        "driver_allocated_bytes": 40977268736,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_2",
+        "stage": "text_encode",
+        "current_allocated_bytes": 9531414528,
+        "driver_allocated_bytes": 43107975168,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_2",
+        "stage": "transformer",
+        "current_allocated_bytes": 3532249600,
+        "driver_allocated_bytes": 15339585536,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_2",
+        "stage": "scheduler",
+        "current_allocated_bytes": 3538211328,
+        "driver_allocated_bytes": 15339585536,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_2",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 467395072,
+        "driver_allocated_bytes": 40977268736,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_2",
+        "stage": "postprocess",
+        "current_allocated_bytes": 488476672,
+        "driver_allocated_bytes": 40977268736,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_3",
+        "stage": "text_encode",
+        "current_allocated_bytes": 9531414528,
+        "driver_allocated_bytes": 43107975168,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_3",
+        "stage": "transformer",
+        "current_allocated_bytes": 3532249600,
+        "driver_allocated_bytes": 15341682688,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_3",
+        "stage": "scheduler",
+        "current_allocated_bytes": 3538211328,
+        "driver_allocated_bytes": 15341682688,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_3",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 467395072,
+        "driver_allocated_bytes": 40977268736,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_3",
+        "stage": "postprocess",
+        "current_allocated_bytes": 488476672,
+        "driver_allocated_bytes": 40977268736,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_4",
+        "stage": "text_encode",
+        "current_allocated_bytes": 9531414528,
+        "driver_allocated_bytes": 43107975168,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_4",
+        "stage": "transformer",
+        "current_allocated_bytes": 3532249600,
+        "driver_allocated_bytes": 15339585536,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_4",
+        "stage": "scheduler",
+        "current_allocated_bytes": 3538211328,
+        "driver_allocated_bytes": 15339585536,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_4",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 467395072,
+        "driver_allocated_bytes": 40977268736,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_4",
+        "stage": "postprocess",
+        "current_allocated_bytes": 488476672,
+        "driver_allocated_bytes": 40977268736,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_5",
+        "stage": "text_encode",
+        "current_allocated_bytes": 9531414528,
+        "driver_allocated_bytes": 43107975168,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_5",
+        "stage": "transformer",
+        "current_allocated_bytes": 3532249600,
+        "driver_allocated_bytes": 15341682688,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_5",
+        "stage": "scheduler",
+        "current_allocated_bytes": 3538211328,
+        "driver_allocated_bytes": 15341682688,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_5",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 467395072,
+        "driver_allocated_bytes": 40977268736,
+        "process_peak_rss_bytes": 17960239104
+      },
+      {
+        "request": "warm_5",
+        "stage": "postprocess",
+        "current_allocated_bytes": 488476672,
+        "driver_allocated_bytes": 40977268736,
+        "process_peak_rss_bytes": 17960239104
+      }
+    ],
+    "observed_max_mps_current_allocated_bytes": 9531414528,
+    "observed_max_mps_driver_allocated_bytes": 43107975168,
+    "process_peak_rss_bytes": 17960239104
+  },
+  {
+    "status": "ok",
+    "provenance": {
+      "timestamp": "2026-09-02T22:40:21-0600",
+      "git_revision": "ae4cddfbbd07c3ff5b96dfbb69d57ceec4e3de67",
+      "python": "3.12.13",
+      "torch": "2.12.1",
+      "torch_git": "7269437d655783a26cba32aa88195b741ff496aa",
+      "diffusers": "0.40.0.dev0",
+      "transformers": "4.57.6",
+      "accelerate": "1.14.0",
+      "platform": "macOS-26.5.2-arm64-arm-64bit",
+      "machine": "arm64",
+      "fallback_enabled": false
+    },
+    "config": {
+      "model": "THUDM/CogVideoX-2b",
+      "load_type": "mps",
+      "dtype": "bfloat16",
+      "height": 480,
+      "width": 720,
+      "frames": 9,
+      "steps": 1,
+      "guidance_scale": 6.0,
+      "seed": 42,
+      "warm_repeats": 5
+    },
+    "load_seconds": 5.939961124910042,
+    "prepare_seconds": 1.6960420839022845,
+    "memory_after_load": {
+      "current_allocated_bytes": 0,
+      "driver_allocated_bytes": 475136,
+      "process_peak_rss_bytes": 17542479872
+    },
+    "memory_after_prepare": {
+      "current_allocated_bytes": 13479892480,
+      "driver_allocated_bytes": 14051393536,
+      "process_peak_rss_bytes": 17542479872
+    },
+    "cold_request": {
+      "request": "cold",
+      "total_seconds": 70.38851558417082,
+      "stage_seconds": {
+        "text_encode": 0.8826431669294834,
+        "transformer": 14.078828500118107,
+        "scheduler": 0.012223541969433427,
+        "vae_decode": 55.381859082961455,
+        "postprocess": 0.003181499894708395
+      },
+      "stage_calls": {
+        "text_encode": 1,
+        "transformer": 1,
+        "scheduler": 1,
+        "vae_decode": 1,
+        "postprocess": 1
+      },
+      "unattributed_seconds": 0.029779792297631502,
+      "output_shape": [
+        1,
+        9,
+        3,
+        480,
+        720
+      ],
+      "fps": 8,
+      "memory_start": {
+        "current_allocated_bytes": 13479892480,
+        "driver_allocated_bytes": 14051393536,
+        "process_peak_rss_bytes": 17542479872
+      },
+      "memory_end": {
+        "current_allocated_bytes": 13502011392,
+        "driver_allocated_bytes": 54782820352,
+        "process_peak_rss_bytes": 17542479872
+      }
+    },
+    "warm_requests": [
+      {
+        "request": "warm_1",
+        "total_seconds": 70.56770295812748,
+        "stage_seconds": {
+          "text_encode": 1.519354582997039,
+          "transformer": 14.28076741611585,
+          "scheduler": 0.005177292041480541,
+          "vae_decode": 54.741019333014265,
+          "postprocess": 0.0027859171386808157
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.018598416820168495,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 13479892992,
+          "driver_allocated_bytes": 54782820352,
+          "process_peak_rss_bytes": 17542479872
+        },
+        "memory_end": {
+          "current_allocated_bytes": 13502011392,
+          "driver_allocated_bytes": 56978538496,
+          "process_peak_rss_bytes": 17542479872
+        }
+      },
+      {
+        "request": "warm_2",
+        "total_seconds": 72.17983958288096,
+        "stage_seconds": {
+          "text_encode": 1.1605975839775056,
+          "transformer": 15.352609165944159,
+          "scheduler": 0.006884708069264889,
+          "vae_decode": 55.63158537494019,
+          "postprocess": 0.002513166982680559
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.025649582967162132,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 13479892992,
+          "driver_allocated_bytes": 56978538496,
+          "process_peak_rss_bytes": 17542479872
+        },
+        "memory_end": {
+          "current_allocated_bytes": 13502011392,
+          "driver_allocated_bytes": 59174256640,
+          "process_peak_rss_bytes": 17542479872
+        }
+      },
+      {
+        "request": "warm_3",
+        "total_seconds": 73.0667318329215,
+        "stage_seconds": {
+          "text_encode": 1.5185866251122206,
+          "transformer": 14.64845870807767,
+          "scheduler": 0.006062125088647008,
+          "vae_decode": 56.87184983305633,
+          "postprocess": 0.001697208033874631
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.020077333552762866,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 13479892992,
+          "driver_allocated_bytes": 59174256640,
+          "process_peak_rss_bytes": 17542479872
+        },
+        "memory_end": {
+          "current_allocated_bytes": 13502011392,
+          "driver_allocated_bytes": 61369974784,
+          "process_peak_rss_bytes": 17542479872
+        }
+      },
+      {
+        "request": "warm_4",
+        "total_seconds": 71.97428083303384,
+        "stage_seconds": {
+          "text_encode": 1.485910375136882,
+          "transformer": 14.50370250013657,
+          "scheduler": 0.005998166976496577,
+          "vae_decode": 55.95671783387661,
+          "postprocess": 0.0025702910497784615
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.01938166585750878,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 13479892992,
+          "driver_allocated_bytes": 61369974784,
+          "process_peak_rss_bytes": 17542479872
+        },
+        "memory_end": {
+          "current_allocated_bytes": 13502011392,
+          "driver_allocated_bytes": 61369974784,
+          "process_peak_rss_bytes": 17542479872
+        }
+      },
+      {
+        "request": "warm_5",
+        "total_seconds": 73.04234483302571,
+        "stage_seconds": {
+          "text_encode": 1.5172754160594195,
+          "transformer": 14.365428042132407,
+          "scheduler": 0.006877250038087368,
+          "vae_decode": 57.12922016601078,
+          "postprocess": 0.002217874862253666
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.0213260839227587,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 13479892992,
+          "driver_allocated_bytes": 61369974784,
+          "process_peak_rss_bytes": 17542479872
+        },
+        "memory_end": {
+          "current_allocated_bytes": 13502011392,
+          "driver_allocated_bytes": 61369974784,
+          "process_peak_rss_bytes": 17542479872
+        }
+      }
+    ],
+    "warm_summary": {
+      "total": {
+        "count": 5,
+        "median_seconds": 72.17983958288096,
+        "mean_seconds": 72.1661800079979,
+        "min_seconds": 70.56770295812748,
+        "max_seconds": 73.0667318329215,
+        "standard_deviation_seconds": 0.9133235074484338,
+        "coefficient_of_variation": 0.01265583833517603
+      },
+      "stages": {
+        "text_encode": {
+          "count": 5,
+          "median_seconds": 1.5172754160594195,
+          "mean_seconds": 1.4403449166566133,
+          "min_seconds": 1.1605975839775056,
+          "max_seconds": 1.519354582997039,
+          "standard_deviation_seconds": 0.14044028994788874,
+          "coefficient_of_variation": 0.09750462429088472
+        },
+        "transformer": {
+          "count": 5,
+          "median_seconds": 14.50370250013657,
+          "mean_seconds": 14.63019316648133,
+          "min_seconds": 14.28076741611585,
+          "max_seconds": 15.352609165944159,
+          "standard_deviation_seconds": 0.3822086657971026,
+          "coefficient_of_variation": 0.02612464930898972
+        },
+        "scheduler": {
+          "count": 5,
+          "median_seconds": 0.006062125088647008,
+          "mean_seconds": 0.006199908442795277,
+          "min_seconds": 0.005177292041480541,
+          "max_seconds": 0.006884708069264889,
+          "standard_deviation_seconds": 0.0006376786559495859,
+          "coefficient_of_variation": 0.10285291497983534
+        },
+        "vae_decode": {
+          "count": 5,
+          "median_seconds": 55.95671783387661,
+          "mean_seconds": 56.066078508179636,
+          "min_seconds": 54.741019333014265,
+          "max_seconds": 57.12922016601078,
+          "standard_deviation_seconds": 0.8644146539960648,
+          "coefficient_of_variation": 0.01541778339053895
+        },
+        "postprocess": {
+          "count": 5,
+          "median_seconds": 0.002513166982680559,
+          "mean_seconds": 0.0023568916134536267,
+          "min_seconds": 0.001697208033874631,
+          "max_seconds": 0.0027859171386808157,
+          "standard_deviation_seconds": 0.0003764391834088438,
+          "coefficient_of_variation": 0.15971849586126521
+        }
+      }
+    },
+    "stage_memory_samples": [
+      {
+        "request": "cold",
+        "stage": "text_encode",
+        "current_allocated_bytes": 13483595264,
+        "driver_allocated_bytes": 14060077056,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "cold",
+        "stage": "transformer",
+        "current_allocated_bytes": 13488039168,
+        "driver_allocated_bytes": 25051365376,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "cold",
+        "stage": "scheduler",
+        "current_allocated_bytes": 13493815552,
+        "driver_allocated_bytes": 25051365376,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "cold",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 13518180352,
+        "driver_allocated_bytes": 54782820352,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "cold",
+        "stage": "postprocess",
+        "current_allocated_bytes": 13539780352,
+        "driver_allocated_bytes": 54782820352,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_1",
+        "stage": "text_encode",
+        "current_allocated_bytes": 13483595776,
+        "driver_allocated_bytes": 54782820352,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_1",
+        "stage": "transformer",
+        "current_allocated_bytes": 13488039168,
+        "driver_allocated_bytes": 33425424384,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_1",
+        "stage": "scheduler",
+        "current_allocated_bytes": 13493815552,
+        "driver_allocated_bytes": 33425424384,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_1",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 13518180352,
+        "driver_allocated_bytes": 56978538496,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_1",
+        "stage": "postprocess",
+        "current_allocated_bytes": 13539780352,
+        "driver_allocated_bytes": 56978538496,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_2",
+        "stage": "text_encode",
+        "current_allocated_bytes": 13483595776,
+        "driver_allocated_bytes": 56978538496,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_2",
+        "stage": "transformer",
+        "current_allocated_bytes": 13488039168,
+        "driver_allocated_bytes": 35621142528,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_2",
+        "stage": "scheduler",
+        "current_allocated_bytes": 13493815552,
+        "driver_allocated_bytes": 35621142528,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_2",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 13518180352,
+        "driver_allocated_bytes": 59174256640,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_2",
+        "stage": "postprocess",
+        "current_allocated_bytes": 13539780352,
+        "driver_allocated_bytes": 59174256640,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_3",
+        "stage": "text_encode",
+        "current_allocated_bytes": 13483595776,
+        "driver_allocated_bytes": 59174256640,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_3",
+        "stage": "transformer",
+        "current_allocated_bytes": 13488039168,
+        "driver_allocated_bytes": 37816860672,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_3",
+        "stage": "scheduler",
+        "current_allocated_bytes": 13493815552,
+        "driver_allocated_bytes": 37816860672,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_3",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 13518180352,
+        "driver_allocated_bytes": 61369974784,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_3",
+        "stage": "postprocess",
+        "current_allocated_bytes": 13539780352,
+        "driver_allocated_bytes": 61369974784,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_4",
+        "stage": "text_encode",
+        "current_allocated_bytes": 13483595776,
+        "driver_allocated_bytes": 61369974784,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_4",
+        "stage": "transformer",
+        "current_allocated_bytes": 13488039168,
+        "driver_allocated_bytes": 37816860672,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_4",
+        "stage": "scheduler",
+        "current_allocated_bytes": 13493815552,
+        "driver_allocated_bytes": 37816860672,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_4",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 13518180352,
+        "driver_allocated_bytes": 61369974784,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_4",
+        "stage": "postprocess",
+        "current_allocated_bytes": 13539780352,
+        "driver_allocated_bytes": 61369974784,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_5",
+        "stage": "text_encode",
+        "current_allocated_bytes": 13483595776,
+        "driver_allocated_bytes": 61369974784,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_5",
+        "stage": "transformer",
+        "current_allocated_bytes": 13488039168,
+        "driver_allocated_bytes": 37816860672,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_5",
+        "stage": "scheduler",
+        "current_allocated_bytes": 13493815552,
+        "driver_allocated_bytes": 37816860672,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_5",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 13518180352,
+        "driver_allocated_bytes": 61369974784,
+        "process_peak_rss_bytes": 17542479872
+      },
+      {
+        "request": "warm_5",
+        "stage": "postprocess",
+        "current_allocated_bytes": 13539780352,
+        "driver_allocated_bytes": 61369974784,
+        "process_peak_rss_bytes": 17542479872
+      }
+    ],
+    "observed_max_mps_current_allocated_bytes": 13539780352,
+    "observed_max_mps_driver_allocated_bytes": 61369974784,
+    "process_peak_rss_bytes": 17542479872
+  },
+  {
+    "status": "ok",
+    "provenance": {
+      "timestamp": "2026-09-02T22:48:10-0600",
+      "git_revision": "ae4cddfbbd07c3ff5b96dfbb69d57ceec4e3de67",
+      "python": "3.12.13",
+      "torch": "2.12.1",
+      "torch_git": "7269437d655783a26cba32aa88195b741ff496aa",
+      "diffusers": "0.40.0.dev0",
+      "transformers": "4.57.6",
+      "accelerate": "1.14.0",
+      "platform": "macOS-26.5.2-arm64-arm-64bit",
+      "machine": "arm64",
+      "fallback_enabled": false
+    },
+    "config": {
+      "model": "THUDM/CogVideoX-2b",
+      "load_type": "sequential_cpu_offload",
+      "dtype": "bfloat16",
+      "height": 480,
+      "width": 720,
+      "frames": 9,
+      "steps": 1,
+      "guidance_scale": 6.0,
+      "seed": 42,
+      "warm_repeats": 5
+    },
+    "load_seconds": 5.963908749865368,
+    "prepare_seconds": 0.07157645816914737,
+    "memory_after_load": {
+      "current_allocated_bytes": 0,
+      "driver_allocated_bytes": 475136,
+      "process_peak_rss_bytes": 17962172416
+    },
+    "memory_after_prepare": {
+      "current_allocated_bytes": 136519680,
+      "driver_allocated_bytes": 1074233344,
+      "process_peak_rss_bytes": 17962172416
+    },
+    "cold_request": {
+      "request": "cold",
+      "total_seconds": 72.2252142089419,
+      "stage_seconds": {
+        "text_encode": 1.6915716249495745,
+        "transformer": 15.392679292010143,
+        "scheduler": 0.008303000126034021,
+        "vae_decode": 55.114265583921224,
+        "postprocess": 0.0020226670894771814
+      },
+      "stage_calls": {
+        "text_encode": 1,
+        "transformer": 1,
+        "scheduler": 1,
+        "vae_decode": 1,
+        "postprocess": 1
+      },
+      "unattributed_seconds": 0.01637204084545374,
+      "output_shape": [
+        1,
+        9,
+        3,
+        480,
+        720
+      ],
+      "fps": 8,
+      "memory_start": {
+        "current_allocated_bytes": 136519680,
+        "driver_allocated_bytes": 1074233344,
+        "process_peak_rss_bytes": 17962172416
+      },
+      "memory_end": {
+        "current_allocated_bytes": 163062272,
+        "driver_allocated_bytes": 1674543104,
+        "process_peak_rss_bytes": 17962172416
+      }
+    },
+    "warm_requests": [
+      {
+        "request": "warm_1",
+        "total_seconds": 70.49092204193585,
+        "stage_seconds": {
+          "text_encode": 1.1565479999408126,
+          "transformer": 14.528757417108864,
+          "scheduler": 0.005932000000029802,
+          "vae_decode": 54.78387045906857,
+          "postprocess": 0.0019042498897761106
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.013909915927797556,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 136520192,
+          "driver_allocated_bytes": 1674543104,
+          "process_peak_rss_bytes": 17962172416
+        },
+        "memory_end": {
+          "current_allocated_bytes": 163062272,
+          "driver_allocated_bytes": 2748284928,
+          "process_peak_rss_bytes": 17962172416
+        }
+      },
+      {
+        "request": "warm_2",
+        "total_seconds": 71.22463837498799,
+        "stage_seconds": {
+          "text_encode": 1.149097666842863,
+          "transformer": 14.537586082937196,
+          "scheduler": 0.004286166978999972,
+          "vae_decode": 55.52091204095632,
+          "postprocess": 0.0015787500888109207
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.011177667183801532,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 136520192,
+          "driver_allocated_bytes": 2748284928,
+          "process_peak_rss_bytes": 17962172416
+        },
+        "memory_end": {
+          "current_allocated_bytes": 163062272,
+          "driver_allocated_bytes": 1674543104,
+          "process_peak_rss_bytes": 17962172416
+        }
+      },
+      {
+        "request": "warm_3",
+        "total_seconds": 70.81696066702716,
+        "stage_seconds": {
+          "text_encode": 1.2022459579166025,
+          "transformer": 14.611595124937594,
+          "scheduler": 0.005058125127106905,
+          "vae_decode": 54.9822692500893,
+          "postprocess": 0.0018241661600768566
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.013968042796477675,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 136520192,
+          "driver_allocated_bytes": 1674543104,
+          "process_peak_rss_bytes": 17962172416
+        },
+        "memory_end": {
+          "current_allocated_bytes": 163062272,
+          "driver_allocated_bytes": 2748284928,
+          "process_peak_rss_bytes": 17962172416
+        }
+      },
+      {
+        "request": "warm_4",
+        "total_seconds": 70.58993279188871,
+        "stage_seconds": {
+          "text_encode": 1.1854746660683304,
+          "transformer": 14.481014207936823,
+          "scheduler": 0.005290750181302428,
+          "vae_decode": 54.902898791013286,
+          "postprocess": 0.001754791010171175
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.01349958567880094,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 136520192,
+          "driver_allocated_bytes": 2748284928,
+          "process_peak_rss_bytes": 17962172416
+        },
+        "memory_end": {
+          "current_allocated_bytes": 163062272,
+          "driver_allocated_bytes": 2748284928,
+          "process_peak_rss_bytes": 17962172416
+        }
+      },
+      {
+        "request": "warm_5",
+        "total_seconds": 70.79511100007221,
+        "stage_seconds": {
+          "text_encode": 1.1827989579178393,
+          "transformer": 14.55567608308047,
+          "scheduler": 0.006586750037968159,
+          "vae_decode": 55.03367720800452,
+          "postprocess": 0.0017785830423235893
+        },
+        "stage_calls": {
+          "text_encode": 1,
+          "transformer": 1,
+          "scheduler": 1,
+          "vae_decode": 1,
+          "postprocess": 1
+        },
+        "unattributed_seconds": 0.014593417989090085,
+        "output_shape": [
+          1,
+          9,
+          3,
+          480,
+          720
+        ],
+        "fps": 8,
+        "memory_start": {
+          "current_allocated_bytes": 136520192,
+          "driver_allocated_bytes": 2748284928,
+          "process_peak_rss_bytes": 17962172416
+        },
+        "memory_end": {
+          "current_allocated_bytes": 163062272,
+          "driver_allocated_bytes": 1674543104,
+          "process_peak_rss_bytes": 17962172416
+        }
+      }
+    ],
+    "warm_summary": {
+      "total": {
+        "count": 5,
+        "median_seconds": 70.79511100007221,
+        "mean_seconds": 70.78351297518239,
+        "min_seconds": 70.49092204193585,
+        "max_seconds": 71.22463837498799,
+        "standard_deviation_seconds": 0.25255796253804175,
+        "coefficient_of_variation": 0.0035680337400969602
+      },
+      "stages": {
+        "text_encode": {
+          "count": 5,
+          "median_seconds": 1.1827989579178393,
+          "mean_seconds": 1.1752330497372896,
+          "min_seconds": 1.149097666842863,
+          "max_seconds": 1.2022459579166025,
+          "standard_deviation_seconds": 0.019616422736614614,
+          "coefficient_of_variation": 0.016691517262044025
+        },
+        "transformer": {
+          "count": 5,
+          "median_seconds": 14.537586082937196,
+          "mean_seconds": 14.54292578320019,
+          "min_seconds": 14.481014207936823,
+          "max_seconds": 14.611595124937594,
+          "standard_deviation_seconds": 0.0422855691456871,
+          "coefficient_of_variation": 0.0029076383786909563
+        },
+        "scheduler": {
+          "count": 5,
+          "median_seconds": 0.005290750181302428,
+          "mean_seconds": 0.005430758465081453,
+          "min_seconds": 0.004286166978999972,
+          "max_seconds": 0.006586750037968159,
+          "standard_deviation_seconds": 0.0007818065217238177,
+          "coefficient_of_variation": 0.14395899334331597
+        },
+        "vae_decode": {
+          "count": 5,
+          "median_seconds": 54.9822692500893,
+          "mean_seconds": 55.044725549826396,
+          "min_seconds": 54.78387045906857,
+          "max_seconds": 55.52091204095632,
+          "standard_deviation_seconds": 0.25256153208998317,
+          "coefficient_of_variation": 0.004588296690867591
+        },
+        "postprocess": {
+          "count": 5,
+          "median_seconds": 0.0017785830423235893,
+          "mean_seconds": 0.0017681080382317305,
+          "min_seconds": 0.0015787500888109207,
+          "max_seconds": 0.0019042498897761106,
+          "standard_deviation_seconds": 0.00010753661583170552,
+          "coefficient_of_variation": 0.06082016115895947
+        }
+      }
+    },
+    "stage_memory_samples": [
+      {
+        "request": "cold",
+        "stage": "text_encode",
+        "current_allocated_bytes": 140222464,
+        "driver_allocated_bytes": 1082900480,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "cold",
+        "stage": "transformer",
+        "current_allocated_bytes": 144666368,
+        "driver_allocated_bytes": 9870082048,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "cold",
+        "stage": "scheduler",
+        "current_allocated_bytes": 177843968,
+        "driver_allocated_bytes": 9878470656,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "cold",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 196506368,
+        "driver_allocated_bytes": 1674543104,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "cold",
+        "stage": "postprocess",
+        "current_allocated_bytes": 222011648,
+        "driver_allocated_bytes": 1674543104,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_1",
+        "stage": "text_encode",
+        "current_allocated_bytes": 140222976,
+        "driver_allocated_bytes": 1628405760,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_1",
+        "stage": "transformer",
+        "current_allocated_bytes": 144666368,
+        "driver_allocated_bytes": 9874407424,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_1",
+        "stage": "scheduler",
+        "current_allocated_bytes": 177843968,
+        "driver_allocated_bytes": 9882796032,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_1",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 196506368,
+        "driver_allocated_bytes": 2748284928,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_1",
+        "stage": "postprocess",
+        "current_allocated_bytes": 222011648,
+        "driver_allocated_bytes": 2748284928,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_2",
+        "stage": "text_encode",
+        "current_allocated_bytes": 140222976,
+        "driver_allocated_bytes": 2702147584,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_2",
+        "stage": "transformer",
+        "current_allocated_bytes": 144666368,
+        "driver_allocated_bytes": 9874407424,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_2",
+        "stage": "scheduler",
+        "current_allocated_bytes": 177843968,
+        "driver_allocated_bytes": 9882796032,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_2",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 196506368,
+        "driver_allocated_bytes": 1674543104,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_2",
+        "stage": "postprocess",
+        "current_allocated_bytes": 222011648,
+        "driver_allocated_bytes": 1674543104,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_3",
+        "stage": "text_encode",
+        "current_allocated_bytes": 140222976,
+        "driver_allocated_bytes": 2702147584,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_3",
+        "stage": "transformer",
+        "current_allocated_bytes": 144666368,
+        "driver_allocated_bytes": 10948149248,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_3",
+        "stage": "scheduler",
+        "current_allocated_bytes": 177843968,
+        "driver_allocated_bytes": 10956537856,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_3",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 196506368,
+        "driver_allocated_bytes": 2748284928,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_3",
+        "stage": "postprocess",
+        "current_allocated_bytes": 222011648,
+        "driver_allocated_bytes": 2748284928,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_4",
+        "stage": "text_encode",
+        "current_allocated_bytes": 140222976,
+        "driver_allocated_bytes": 1628405760,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_4",
+        "stage": "transformer",
+        "current_allocated_bytes": 144666368,
+        "driver_allocated_bytes": 9874407424,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_4",
+        "stage": "scheduler",
+        "current_allocated_bytes": 177843968,
+        "driver_allocated_bytes": 9882796032,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_4",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 196506368,
+        "driver_allocated_bytes": 2748284928,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_4",
+        "stage": "postprocess",
+        "current_allocated_bytes": 222011648,
+        "driver_allocated_bytes": 2748284928,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_5",
+        "stage": "text_encode",
+        "current_allocated_bytes": 140222976,
+        "driver_allocated_bytes": 2710536192,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_5",
+        "stage": "transformer",
+        "current_allocated_bytes": 144666368,
+        "driver_allocated_bytes": 9874407424,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_5",
+        "stage": "scheduler",
+        "current_allocated_bytes": 177843968,
+        "driver_allocated_bytes": 9882796032,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_5",
+        "stage": "vae_decode",
+        "current_allocated_bytes": 196506368,
+        "driver_allocated_bytes": 1674543104,
+        "process_peak_rss_bytes": 17962172416
+      },
+      {
+        "request": "warm_5",
+        "stage": "postprocess",
+        "current_allocated_bytes": 222011648,
+        "driver_allocated_bytes": 1674543104,
+        "process_peak_rss_bytes": 17962172416
+      }
+    ],
+    "observed_max_mps_current_allocated_bytes": 222011648,
+    "observed_max_mps_driver_allocated_bytes": 10956537856,
+    "process_peak_rss_bytes": 17962172416
+  }
+]

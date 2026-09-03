@@ -74,6 +74,18 @@ _logger = get_logger(__name__)
     default=50,
     help="the number of inference steps, default is 50",
 )
+@click.option(
+    "--num_frames",
+    type=click.IntRange(min=1),
+    default=None,
+    help="the number of video frames; defaults to the CogVideo model configuration",
+)
+@click.option(
+    "--guidance_scale",
+    type=click.FloatRange(min=0),
+    default=None,
+    help="classifier-free guidance scale; defaults to 3.5 for images and 6.0 for videos",
+)
 @click.option("--seed", type=int, help="the seed for reproducibility")
 @click.argument("prompt")
 @click.argument("model_id_or_path")
@@ -92,6 +104,8 @@ def inference(
     height: int | None = None,
     width: int | None = None,
     num_inference_steps: int = 50,
+    num_frames: int | None = None,
+    guidance_scale: float | None = None,
     seed: int = 42,
 ) -> None:
     """
@@ -109,6 +123,9 @@ def inference(
     - height (int | None): The height of the generated image/video.
     - width (int | None): The width of the generated image/video.
     - num_inference_steps (int): The number of inference steps.
+    - num_frames (int | None): The number of video frames. Ignored for image generation.
+    - guidance_scale (float | None): Classifier-free guidance scale. Uses the task default
+      when omitted.
     - seed (int): The seed for reproducibility.
     """
 
@@ -132,7 +149,9 @@ def inference(
             load_type=load_type,
             height=height,
             width=width,
+            num_frames=num_frames,
             num_inference_steps=num_inference_steps,
+            guidance_scale=6.0 if guidance_scale is None else guidance_scale,
             seed=seed,
         )
         assert len(output) == 1
@@ -156,6 +175,7 @@ def inference(
             height=height,
             width=width,
             num_inference_steps=num_inference_steps,
+            guidance_scale=3.5 if guidance_scale is None else guidance_scale,
             seed=seed,
         )
         assert len(batched_images) == 1

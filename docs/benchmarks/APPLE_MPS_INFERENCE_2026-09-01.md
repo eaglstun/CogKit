@@ -13,7 +13,7 @@ retained below, marked superseded, because the reason it was wrong is the useful
 ## Provenance
 
 - Recorded: `2026-09-01T15:17:40-06:00` (supersedes `2026-09-01T11:14:28-06:00`)
-- CogKit: `22593b117c65aba3c9dc81b2cbd229cbdedcde58`
+- CogKit: `b7a1356868fc0c92eb37316777d7431d16bf2da6`
 - Host: MacBook Pro `Mac16,5`, Apple M4 Max, 16 CPU cores, 64 GB memory
 - OS: macOS 26.5.2 (`25F84`)
 - Baseline: torch `2.12.1` at `7269437d655783a26cba32aa88195b741ff496aa`,
@@ -76,6 +76,13 @@ being measured.
 one requires a different design, not more repeats of this one — in-process warm-up
 iterations, more denoising steps per measurement to amortize fixed overhead, and per-op
 timing rather than whole-pipeline wall clock.
+
+That design was built the following day and does resolve it; see
+[`APPLE_MPS_STEP_COST_2026-09-02.md`](APPLE_MPS_STEP_COST_2026-09-02.md). Measuring marginal
+cost per denoising step rather than whole-pipeline wall time, the fork is 9.5% faster per
+step with fully separated ranges. Two defects in the harness below account for the noise:
+roughly a third of each single-step measurement was `cpu_model_offload` traffic rather than
+kernel time, and no warm-up meant every run also paid Metal shader compilation.
 
 ## Correctness
 
