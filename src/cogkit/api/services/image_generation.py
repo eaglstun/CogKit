@@ -7,7 +7,7 @@ import torch
 
 from cogkit.api.logging import get_logger
 from cogkit.api.settings import APISettings
-from cogkit.python import generate_image
+from cogkit.python import before_generation, generate_image
 from cogkit.utils import load_lora_checkpoint, load_pipeline, unload_lora_checkpoint
 
 _logger = get_logger(__name__)
@@ -28,6 +28,15 @@ class ImageGenerationService(object):
                 lora_model_id_or_path=settings.lora_dir,
                 transformer_path=settings.cogview4_transformer_path,
                 dtype=torch_dtype,
+            )
+            # Place the pipeline once, at startup, rather than letting the first request
+            # pay for it. `generate_image` still calls `before_generation` per request;
+            # that call now short-circuits on the load-type guard.
+            before_generation(
+                cogview4_pl,
+                self._load_type,
+                vae_slicing=settings.vae_memory_saving,
+                vae_tiling=settings.vae_memory_saving,
             )
             self._models["cogview-4"] = cogview4_pl
             self._current_lora["cogview-4"] = None  # Initialize with no LORA loaded

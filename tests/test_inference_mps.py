@@ -65,11 +65,23 @@ INFERENCE_IMAGE_COSINE_MIN = 0.995
 
 
 class _FakeVAE:
+    def __init__(self) -> None:
+        # Recorded rather than ignored: `_configure_vae_memory_saving` skips any method the
+        # VAE does not expose, so a fake that silently absorbs everything would let the
+        # memory-saving tests pass without the code doing anything.
+        self.calls: list[str] = []
+
     def enable_slicing(self) -> None:
-        pass
+        self.calls.append("enable_slicing")
+
+    def disable_slicing(self) -> None:
+        self.calls.append("disable_slicing")
 
     def enable_tiling(self) -> None:
-        pass
+        self.calls.append("enable_tiling")
+
+    def disable_tiling(self) -> None:
+        self.calls.append("disable_tiling")
 
 
 class _FakePipeline:
@@ -190,6 +202,57 @@ def test_cpu_offload_targets_mps(monkeypatch, load_type, method):
     assert (method, torch.device("mps")) in pipeline.calls
 
 
+def test_vae_memory_saving_defaults_on(monkeypatch):
+    # The default must stay conservative: the caller's memory budget is unknown.
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    pipeline = _pipeline()
+    before_generation(pipeline, "mps")
+    assert pipeline.vae.calls == ["enable_slicing", "enable_tiling"]
+
+
+def test_vae_memory_saving_can_be_disabled(monkeypatch):
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    pipeline = _pipeline()
+    before_generation(pipeline, "mps", vae_slicing=False, vae_tiling=False)
+    assert pipeline.vae.calls == ["disable_slicing", "disable_tiling"]
+
+
+def test_placement_is_not_repeated_for_the_same_load_type(monkeypatch):
+    # Installing offload hooks twice is the cost this guard exists to avoid.
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    pipeline = _pipeline()
+    before_generation(pipeline, "mps")
+    before_generation(pipeline, "mps")
+    assert pipeline.calls == [("remove_all_hooks", None), ("to", "mps")]
+
+
+def test_vae_memory_saving_still_applies_on_a_repeat_call(monkeypatch):
+    # Placement short-circuits on the second call; the VAE flags must not short-circuit
+    # with it, or a caller could never change them between requests.
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    pipeline = _pipeline()
+    before_generation(pipeline, "mps")
+    pipeline.vae.calls.clear()
+    before_generation(pipeline, "mps", vae_slicing=False, vae_tiling=False)
+    assert pipeline.vae.calls == ["disable_slicing", "disable_tiling"]
+
+
+def test_unset_vae_flags_do_not_reset_an_explicit_setting(monkeypatch):
+    """Regression: `None` must mean "leave alone", not "enable".
+
+    `generate_image`/`generate_video` forward only `load_type`, so every request re-enters
+    `before_generation` with these unset. When `None` meant "enable", a caller who had
+    turned tiling off had it silently turned back on by the next request -- which is how a
+    benchmark's "tiling off" arm ended up measuring tiling on.
+    """
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    pipeline = _pipeline()
+    before_generation(pipeline, "mps", vae_slicing=False, vae_tiling=False)
+    pipeline.vae.calls.clear()
+    before_generation(pipeline, "mps")  # a subsequent request, flags not restated
+    assert pipeline.vae.calls == []
+
+
 def test_cpu_offload_requires_accelerator(monkeypatch):
     monkeypatch.setenv("COGKIT_DEVICE", "cpu")
     with pytest.raises(RuntimeError, match="requires a CUDA or MPS accelerator"):
@@ -197,7 +260,10 @@ def test_cpu_offload_requires_accelerator(monkeypatch):
 
 
 def test_api_threads_mps_load_type_to_generation(monkeypatch):
-    pipeline = object()
+    # The service now places the pipeline in __init__, so the stand-in has to be a
+    # plausible pipeline rather than a bare object.
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    pipeline = _pipeline()
     captured: dict[str, object] = {}
 
     monkeypatch.setattr(image_generation_module, "load_pipeline", lambda **kwargs: pipeline)
@@ -210,6 +276,38 @@ def test_api_threads_mps_load_type_to_generation(monkeypatch):
     service = ImageGenerationService(APISettings(cogview4_path="model", offload_type="mps"))
     service.generate("cogview-4", "prompt", "2x2", 1)
     assert captured["load_type"] == "mps"
+
+
+def test_api_places_the_pipeline_at_startup(monkeypatch):
+    """The first request should not be the one that pays for placement."""
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    pipeline = _pipeline()
+    monkeypatch.setattr(image_generation_module, "load_pipeline", lambda **kwargs: pipeline)
+    monkeypatch.setattr(
+        image_generation_module,
+        "generate_image",
+        lambda **kwargs: np.zeros((1, 2, 2, 3), dtype=np.uint8),
+    )
+
+    ImageGenerationService(APISettings(cogview4_path="model", offload_type="mps"))
+    assert pipeline.calls == [("remove_all_hooks", None), ("to", "mps")]
+    assert pipeline.vae.calls == ["enable_slicing", "enable_tiling"]
+
+
+def test_api_can_turn_vae_memory_saving_off(monkeypatch):
+    monkeypatch.setattr(torch.backends.mps, "is_available", lambda: True)
+    pipeline = _pipeline()
+    monkeypatch.setattr(image_generation_module, "load_pipeline", lambda **kwargs: pipeline)
+    monkeypatch.setattr(
+        image_generation_module,
+        "generate_image",
+        lambda **kwargs: np.zeros((1, 2, 2, 3), dtype=np.uint8),
+    )
+
+    ImageGenerationService(
+        APISettings(cogview4_path="model", offload_type="mps", vae_memory_saving=False)
+    )
+    assert pipeline.vae.calls == ["disable_slicing", "disable_tiling"]
 
 
 @pytest.mark.skipif(

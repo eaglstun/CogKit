@@ -175,6 +175,13 @@ is faster at inference, but the delta spans a major version and is unattributed.
   bitsandbytes off the darwin dependency set (no published wheel); Apple Silicon needs a
   source build with Metal kernels. The `BitsAndBytesConfig` in each `lora_trainer.py` must
   stay lazily constructed inside the `low_vram` branch.
+- Inference placement is idempotent: `before_generation` short-circuits on
+  `_cogkit_load_type`, and the API service places the pipeline at startup rather than on the
+  first request. VAE slicing/tiling are `vae_slicing`/`vae_tiling` there and a
+  `vae_memory_saving` API setting, **defaulting on** -- off is ~17% faster warm but costs
+  21 GB of MPS driver allocation (`docs/benchmarks/APPLE_MPS_VAE_DECODE_2026-09-03.md`).
+  `None` means *leave the setting alone*: `generate_image`/`generate_video` forward only
+  `load_type`, so treating unset as "enable" silently resets an explicit setting every request.
 - Video _training_ is unsupported: torchvision ≥0.23 removed `VideoReader`, so the dataset
   modules guard that import (type-annotation use only) and `cv2` is imported lazily. t2v/i2v
   training fails loudly at use-time. Video _inference_ on MPS is a separate lane and works.

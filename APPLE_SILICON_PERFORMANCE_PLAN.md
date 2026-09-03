@@ -6,11 +6,13 @@ the documented M4 Max 64 GB run.
 **Rule:** a completed MPS run is not a correctness result. Every numerical change must
 retain the CPU-to-MPS parity gates in `tests/test_mps_cpu_parity.py`.
 
-**Current status:** Steps 1-3 are done and recorded below. Step 2 landed the large win
+**Current status:** Steps 1-4 are done and recorded below. Step 2 landed the large win
 (gradient checkpointing off on MPS: median step 10.46 s -> 7.10 s). Step 3 landed as a
 correctness-neutral change with no measurable speedup, and its premise is now retired -- do not
-spend more time on attention-mask construction. **Step 4 (inference placement and VAE decode) is
-next, and the CogVideo load-mode benchmark already names VAE decode as 73-78% of warm latency.**
+spend more time on attention-mask construction. Step 4 found placement already idempotent and
+turned VAE memory saving into a setting: it is worth ~17% of warm latency but costs 21 GB, so the
+default stays on. **VAE decode is still 66-78% of warm latency and is still the target; tiling is
+just not the lever.** Step 5's premise is also retired (data wait measures 0.2% of a step).
 Enable profiling by setting `profile_steps: 3` (or more) in `config_mps.yaml`. Keep at least one
 warmup step, and extend the window through a checkpoint when measuring serialization.
 
@@ -208,3 +210,42 @@ Scale the per-block numbers by 28 layers and compare against the measured 3.75 s
 penalties are each single-digit percentages of it. **The remaining time is in the transformer's
 linear layers**, which is where a further training-side win has to come from -- not from masks,
 and not from the data loader (data wait is 0.015 s, 0.2% of a step).
+
+### Step 4 accepted — inference placement and VAE decode — 2026-09-03
+
+- Branch `perf/mps-step4-inference` (parent `288d7a3`)
+- Hardware/runtime: M4 Max 64 GB, macOS 26.5.2, torch `2.15.0a0+gitf6df965`, Python 3.14.2
+- Workload: `THUDM/CogVideoX-2b`, 480x720, 9 frames, 1 step, bf16, `PYTORCH_ENABLE_MPS_FALLBACK=0`
+- Full matrix, method, and the isolated decode microbenchmark:
+  `docs/benchmarks/APPLE_MPS_VAE_DECODE_2026-09-03.md` plus
+  `docs/benchmarks/apple_mps_vae_decode_2026-09-03.json`
+
+**Half of this step was already done.** The plan says `before_generation` "applies direct
+placement or installs offload hooks on every request". It does not: the `_COGKIT_LOAD_TYPE_ATTR`
+guard landed in `7ae59d7` and short-circuits repeat calls. Diffusers' `enable_model_cpu_offload`
+and `enable_sequential_cpu_offload` both call `remove_all_hooks()` internally, so there is no
+hook stacking to fix either. Verified, not assumed. What was left: the API paid placement on its
+first request, which now happens at service startup.
+
+VAE slicing and tiling were unconditional. They are now `vae_slicing`/`vae_tiling` on
+`before_generation` and a `vae_memory_saving` API setting, defaulting on:
+
+| Load mode                | Warm latency        | VAE decode          | Driver max            |
+| ------------------------ | ------------------- | ------------------- | --------------------- |
+| `mps`                    | 23.56 s -> 19.56 s  | 16.78 s -> 12.91 s  | 24.24 GB -> 45.34 GB  |
+| `sequential_cpu_offload` | 29.55 s -> 24.96 s  | 19.76 s -> 15.40 s  |  2.18 GB -> 10.13 GB  |
+
+Decision: **keep the default on.** -17% warm latency is real, but 45.34 GB of driver allocation
+on a 64 GB machine leaves under 19 GB of headroom, and the library cannot know the caller's
+memory budget. The speed is available to anyone who states that they have the room.
+
+Two things worth carrying forward. **Slicing does nothing at batch size 1** — it splits the
+decode along the batch dimension — so tiling is the entire effect. And a first attempt at this
+matrix produced identical numbers for both arms because `generate_video` forwards only
+`load_type`, re-entering `before_generation` with the VAE flags unset; treating unset as "enable"
+silently re-enabled tiling on every request. The harness now records the VAE flags read back
+*after* the requests, so a run that did not measure what it claims is visibly invalid.
+
+**Step 5's premise is retired.** The Step 1 profile measures data wait at 0.0092-0.015 s, 0.2% of
+a training step. Decoupling the dataset from model objects may still be worth doing for `spawn`
+correctness, but not as a performance step.

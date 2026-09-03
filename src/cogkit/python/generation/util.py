@@ -159,9 +159,39 @@ def guess_frames(pipeline: TVideoPipeline, frames: int | None = None) -> tuple[i
     return frames, fps
 
 
+def _configure_vae_memory_saving(
+    pipeline: TPipeline,
+    vae_slicing: bool | None,
+    vae_tiling: bool | None,
+) -> None:
+    """Apply the VAE slicing/tiling flags that were explicitly requested.
+
+    `None` means **leave the current setting alone**, and that is the whole point. Callers
+    like `generate_image`/`generate_video` forward only `load_type`, so every request
+    re-enters `before_generation` with these unset; if `None` meant "enable", a caller who
+    had deliberately turned tiling off would have it turned back on under them by the next
+    request. The conservative default is applied once, where placement is configured.
+    """
+    vae = getattr(pipeline, "vae", None)
+    if vae is None:
+        return
+    for requested, enable, disable in (
+        (vae_slicing, "enable_slicing", "disable_slicing"),
+        (vae_tiling, "enable_tiling", "disable_tiling"),
+    ):
+        if requested is None:
+            continue
+        method = enable if requested else disable
+        if hasattr(vae, method):
+            getattr(vae, method)()
+
+
 def before_generation(
     pipeline: TPipeline,
     load_type: LoadType = "cpu_model_offload",
+    *,
+    vae_slicing: bool | None = None,
+    vae_tiling: bool | None = None,
 ) -> None:
     if isinstance(pipeline, TVideoPipeline) and not isinstance(
         pipeline.scheduler, CogVideoXDPMScheduler
@@ -171,6 +201,10 @@ def before_generation(
         )
 
     if getattr(pipeline, _COGKIT_LOAD_TYPE_ATTR, None) == load_type:
+        # Placement is already correct; hook installation must not repeat. An explicit VAE
+        # flag is still honoured so a caller can change it between requests, but an unset
+        # one leaves the existing setting in place.
+        _configure_vae_memory_saving(pipeline, vae_slicing, vae_tiling)
         return
 
     if load_type in ("cuda", "mps"):
@@ -204,7 +238,12 @@ def before_generation(
         pipeline.enable_sequential_cpu_offload(device=device)
     else:
         raise ValueError(f"Unsupported offload type: {load_type}")
-    if hasattr(pipeline, "vae"):
-        pipeline.vae.enable_slicing()
-        pipeline.vae.enable_tiling()
+    # First placement (or a load-type change) is where the conservative default lands:
+    # slicing and tiling on unless the caller says otherwise. See
+    # docs/benchmarks/APPLE_MPS_VAE_DECODE_2026-09-03.md for what each one costs.
+    _configure_vae_memory_saving(
+        pipeline,
+        True if vae_slicing is None else vae_slicing,
+        True if vae_tiling is None else vae_tiling,
+    )
     setattr(pipeline, _COGKIT_LOAD_TYPE_ATTR, load_type)
