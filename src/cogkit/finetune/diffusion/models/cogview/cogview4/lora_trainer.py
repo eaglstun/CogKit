@@ -22,7 +22,8 @@ from diffusers import (
     CogView4Transformer2DModel,
     FlowMatchEulerDiscreteScheduler,
 )
-from diffusers.models.transformers.transformer_cogview4 import CogView4TrainingAttnProcessor
+
+from .attention import CogKitCogView4TrainingAttnProcessor
 
 
 class Cogview4Trainer(DiffusionTrainer):
@@ -73,7 +74,7 @@ class Cogview4Trainer(DiffusionTrainer):
                 quantization_config=nf4_config,
                 device=self.state.device,
             )
-        replace_attn_processor(components.transformer, CogView4TrainingAttnProcessor())
+        replace_attn_processor(components.transformer, CogKitCogView4TrainingAttnProcessor())
 
         ### vae
         components.vae = AutoencoderKL.from_pretrained(
