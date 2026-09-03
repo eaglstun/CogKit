@@ -1,0 +1,70 @@
+# Apple Silicon (MPS) single-device QLoRA config — cogview4-6b, NF4 base weights.
+# Identical to config_mps.yaml except for `low_vram: true`. Requires a bitsandbytes
+# built with Metal kernels (`cmake -DCOMPUTE_BACKEND=mps -S . && make`); the trainer
+# probes for a working 4-bit backend at startup and fails there if it is missing.
+
+# ================ Logging ================
+name4train: "t2i-train-mps-qlora"
+log_level: "INFO"
+
+# ================ Model ================
+model_name: "cogview4-6b"
+model_path: "THUDM/CogView4-6B"
+
+# ================ Output ================
+output_dir: "train_result_mps_qlora"
+
+# ================ Tracker ================
+report_to: null
+
+# ================ Data ================
+data_root: "../../data/t2i"
+
+# ================ Training ================
+seed: 42
+training_type: "lora"
+
+# SINGLE = single-device lane (MPS/CPU): no FSDP/DDP wrapping
+strategy: "SINGLE"
+
+offload_params_grads: false
+no_grad_sync_when_accumulating: false
+
+# See config.yaml — clear data_root/{train,test}/.cache when flipping this
+enable_packing: false
+
+# QLoRA: load the 6B base transformer as NF4 and train LoRA adapters on top.
+# low_vram checkpoints save LoRA weights only (no DCP), so resume is unavailable.
+low_vram: true
+
+# Recompute-free backward. Measured on an M4 Max 64 GB at 512x512 bf16 batch 1:
+# median step 10.46s -> 7.10s (-32%), backward 6.47s -> 2.94s, at the cost of MPS
+# driver-reserved memory 15.1 GB -> 25.2 GB. See APPLE_SILICON_PERFORMANCE_PLAN.md
+# Step 2. Set back to true on a Mac with less memory; the CUDA default is unchanged.
+gradient_checkpointing: false
+
+# CogView4: height/width must be multiples of 32
+train_resolution: [512, 512]  # [Height, Width]
+
+train_epochs: 1
+batch_size: 1
+gradient_accumulation_steps: 1
+mixed_precision: "bf16"
+learning_rate: 2.0e-5
+
+# Opt-in synchronized phase timing. Set profile_steps > 0 only for benchmark runs;
+# explicit MPS synchronization intentionally slows the profiled steps.
+profile_warmup_steps: 1
+profile_steps: 4
+
+# fork-based dataloader workers are unreliable on macOS; keep in-process
+num_workers: 0
+pin_memory: false
+
+checkpointing_steps: 5
+checkpointing_limit: 2
+resume_from_checkpoint: null
+
+# ================ Validation ================
+do_validation: false
+validation_steps: null

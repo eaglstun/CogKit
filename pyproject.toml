@@ -39,7 +39,10 @@ finetune = [
   "wandb~=0.19.8",
   # 14.x ships no cp314 wheel; 15.1 does
   "av~=15.1",
-  # bitsandbytes is CUDA-only (no macOS/arm64 wheel); the QLoRA path guards against it on MPS
+  # No macOS/arm64 bitsandbytes wheel is published, so it stays off the darwin dependency
+  # set. QLoRA on Apple Silicon needs a source build with Metal kernels
+  # (`cmake -DCOMPUTE_BACKEND=mps -S . && make`, then `pip install -e .`); `low_vram` probes
+  # for a working 4-bit backend at trainer startup rather than testing sys.platform.
   "bitsandbytes~=0.45.4; sys_platform != 'darwin'",
   "pyyaml>=6.0.2",
 ]

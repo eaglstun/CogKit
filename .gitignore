@@ -271,5 +271,6 @@ webdoc/
 
 # MPS smoke-run outputs + precompute caches
 **/train_result_mps
+**/train_result_mps_qlora
 quickstart/data/**/.cache/
 graphify-out/

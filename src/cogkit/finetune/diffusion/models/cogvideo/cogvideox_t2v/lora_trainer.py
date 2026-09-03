@@ -51,7 +51,8 @@ class CogVideoXT2VLoraTrainer(DiffusionTrainer):
                 torch_dtype=dtype,
             )
         else:
-            # constructing the config already requires bitsandbytes (CUDA-only), so build it lazily
+            # constructing the config already requires bitsandbytes, so build it lazily; the
+            # device compatibility check in BaseTrainer._check_device_compat has already run
             nf4_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_quant_type="nf4",

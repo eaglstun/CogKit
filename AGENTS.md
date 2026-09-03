@@ -114,7 +114,7 @@ Trainers thread three pydantic-style objects (`finetune/base/` and
 `strategy` in the config selects the parallelism: `DDP` or an FSDP sharding mode
 (`NO_SHARD`, `SHARD_GRAD_OP`, `FULL_SHARD`, `HYBRID_SHARD`). FSDP uses a
 size-based auto-wrap policy (params ≥ 1e8). `low_vram: true` enables **QLoRA**
-(bitsandbytes NF4 quantization) and forces the DDP path; its checkpoints are saved
+(bitsandbytes NF4 quantization) and requires `DDP` or `SINGLE`; its checkpoints are saved
 as plain LoRA and must **not** be run through `merge.py`.
 
 ### Data & performance features
@@ -167,10 +167,14 @@ is faster at inference, but the delta spans a major version and is unattributed.
   masking semantics, built once per forward instead of per block; packed training still
   delegates upstream. Changes there must keep `tests/test_cogview4_attention.py` green — it
   checks outputs _and_ gradients against the upstream processor.
-- QLoRA (`low_vram: true`) and FSDP strategies **hard-error on non-CUDA**
-  (`BaseTrainer._check_device_compat`). bitsandbytes is platform-conditional in
-  `pyproject.toml` (no macOS wheel); the `BitsAndBytesConfig` in each `lora_trainer.py`
-  must stay lazily constructed inside the `low_vram` branch.
+- FSDP strategies **hard-error on non-CUDA** (`BaseTrainer._check_device_compat`).
+  QLoRA (`low_vram: true`) no longer does: the same guard now runs a real 4-bit round trip
+  on the target device (`finetune/utils/quantization.py`) and fails only when bitsandbytes
+  cannot actually quantize there. Keep it a capability check — a `sys.platform` test would
+  both lock out working Metal builds and pass on broken ones. `pyproject.toml` still leaves
+  bitsandbytes off the darwin dependency set (no published wheel); Apple Silicon needs a
+  source build with Metal kernels. The `BitsAndBytesConfig` in each `lora_trainer.py` must
+  stay lazily constructed inside the `low_vram` branch.
 - Video _training_ is unsupported: torchvision ≥0.23 removed `VideoReader`, so the dataset
   modules guard that import (type-annotation use only) and `cv2` is imported lazily. t2v/i2v
   training fails loudly at use-time. Video _inference_ on MPS is a separate lane and works.
