@@ -234,7 +234,15 @@ def _run_worker(args: argparse.Namespace) -> dict[str, Any]:
     after_load = _memory_snapshot()
 
     prepare_started = time.monotonic()
-    before_generation(pipeline, cast(LoadType, args.load_type))
+    # None would mean "keep the conservative default"; the benchmark is measuring the
+    # default itself, so it always states the setting explicitly.
+    vae_memory_saving = args.vae_memory_saving == "on"
+    before_generation(
+        pipeline,
+        cast(LoadType, args.load_type),
+        vae_slicing=vae_memory_saving,
+        vae_tiling=vae_memory_saving,
+    )
     _sync_mps()
     prepare_seconds = time.monotonic() - prepare_started
     after_prepare = _memory_snapshot()
@@ -289,6 +297,14 @@ def _run_worker(args: argparse.Namespace) -> dict[str, Any]:
             "guidance_scale": args.guidance_scale,
             "seed": args.seed,
             "warm_repeats": args.warm_repeats,
+            "vae_memory_saving": args.vae_memory_saving,
+        },
+        # Recorded after the requests, not before: `generate_video` re-enters
+        # `before_generation` on every call, so the requested setting is not proof of the
+        # setting that ran. A run whose observed flags disagree with its config is invalid.
+        "vae_flags_observed_after_requests": {
+            "use_slicing": bool(getattr(pipeline.vae, "use_slicing", False)),
+            "use_tiling": bool(getattr(pipeline.vae, "use_tiling", False)),
         },
         "load_seconds": load_seconds,
         "prepare_seconds": prepare_seconds,
@@ -354,6 +370,8 @@ def _run_parent(args: argparse.Namespace) -> list[dict[str, Any]]:
                 str(args.seed),
                 "--warm-repeats",
                 str(args.warm_repeats),
+                "--vae-memory-saving",
+                args.vae_memory_saving,
             ]
             environment = os.environ.copy()
             environment["COGKIT_DEVICE"] = "mps"
@@ -410,6 +428,13 @@ def _parser() -> argparse.ArgumentParser:
         "--load-types",
         default="mps,cpu_model_offload,sequential_cpu_offload",
         help="comma-separated modes; each runs in a fresh subprocess",
+    )
+    parser.add_argument(
+        "--vae-memory-saving",
+        choices=("on", "off"),
+        default="on",
+        help="VAE slicing+tiling. 'on' is the shipped default; 'off' trades peak memory "
+        "for decode speed and is only safe with known headroom.",
     )
     parser.add_argument("--allow-fallback", action="store_true")
     parser.add_argument("--timeout", type=int, default=0, help="per-mode timeout in seconds")

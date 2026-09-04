@@ -114,7 +114,7 @@ Trainers thread three pydantic-style objects (`finetune/base/` and
 `strategy` in the config selects the parallelism: `DDP` or an FSDP sharding mode
 (`NO_SHARD`, `SHARD_GRAD_OP`, `FULL_SHARD`, `HYBRID_SHARD`). FSDP uses a
 size-based auto-wrap policy (params ≥ 1e8). `low_vram: true` enables **QLoRA**
-(bitsandbytes NF4 quantization) and forces the DDP path; its checkpoints are saved
+(bitsandbytes NF4 quantization) and requires `DDP` or `SINGLE`; its checkpoints are saved
 as plain LoRA and must **not** be run through `merge.py`.
 
 ### Data & performance features
@@ -143,26 +143,93 @@ as plain LoRA and must **not** be run through `merge.py`.
 
 ## Apple Silicon (MPS) lane
 
-This fork supports single-device Mac training (merged to `main` 2026-07-08; developed on
-`apple-silicon-mps`, plan/history: `APPLE_METAL_PORT_PLAN.md`). **Status: Phases 1–2 done
-— cogview4-6b LoRA verified correct on MPS. Phase 3 (inference on MPS) is the next piece
-of work.** Env: `.venv` built with uv (not PDM), Python 3.12. Key facts:
+This fork trains CogView4 and runs CogView4/CogVideoX inference on a single Apple Silicon
+device. **Status: training and inference both work; performance work is in progress —
+`APPLE_SILICON_PERFORMANCE_PLAN.md` Steps 1–4 are accepted. Step 5's premise (dataloader
+overlap) is retired: data wait measures 0.2% of a step.** Each phase has
+a plan with an acceptance record (`APPLE_METAL_PORT_PLAN.md` for the training port and MPS
+inference, `COGVIDEO_MPS_INFERENCE_PLAN.md` for video, the performance plan above); dated
+measurements and raw JSON live in `docs/benchmarks/` — take any number from there.
+
+Env: three venvs, all built with uv (not PDM), and they are **not interchangeable**:
+
+| venv                     | python | torch                | use                                      |
+| ------------------------ | ------ | -------------------- | ---------------------------------------- |
+| `.venv`                  | 3.12   | pinned 2.12.1        | reference for gates; **no bitsandbytes** |
+| `.venv-pytorch-fork`     | 3.12   | local fork           | older fallback lane; **no bitsandbytes** |
+| `.venv-pytorch-fork-314` | 3.14   | local fork (2.15.0a) | **primary lane; the only one with bnb**  |
+
+The local PyTorch fork lives at `~/Documents/dev/pytorch` and needs `USE_DISTRIBUTED=1` (the
+training lane launches over gloo). **Trap:** `start_train_mps.sh` defaults `TORCHRUN` to
+`.venv/bin/torchrun`, which has no bitsandbytes, so a QLoRA launch there dies inside torchrun
+with the real error swallowed by a `ChildFailedError`. Pass
+`TORCHRUN=$PWD/.venv-pytorch-fork-314/bin/torchrun` for anything `low_vram`. Key facts:
 
 - `strategy: "SINGLE"` = no FSDP/DDP wrap; still launched via **torchrun at
   `--nproc_per_node=1`** over a `gloo` process group (DCP checkpointing and the rank
   helpers depend on it). Launch: `quickstart/scripts/t2i/start_train_mps.sh`
   (`config_mps.yaml`). `COGKIT_DEVICE` env forces the device (`cpu` = parity oracle);
   otherwise auto-detect cuda → mps → cpu in `finetune/utils/dist.py::get_device`.
-- QLoRA (`low_vram: true`) and FSDP strategies **hard-error on non-CUDA**
-  (`BaseTrainer._check_device_compat`). bitsandbytes is platform-conditional in
-  `pyproject.toml` (no macOS wheel); the `BitsAndBytesConfig` in each `lora_trainer.py`
-  must stay lazily constructed inside the `low_vram` branch.
-- Video is unsupported on this lane: torchvision ≥0.23 removed `VideoReader`, so the
-  dataset modules guard that import (type-annotation use only) and `cv2` is imported
-  lazily. t2v/i2v fail loudly at use-time.
+- **`gradient_checkpointing: false` in `config_mps.yaml` is deliberate, not a leftover** — it
+  trades MPS memory for a large step-time win on a 64 GB machine. Set it back to `true` on a
+  smaller Mac; the `BaseArgs` default is still `True`, so CUDA is unaffected.
+- CogView4 training installs `CogKitCogView4TrainingAttnProcessor`
+  (`finetune/diffusion/models/cogview/cogview4/attention.py`) over the diffusers one. Same
+  masking semantics, built once per forward instead of per block; packed training still
+  delegates upstream. Changes there must keep `tests/test_cogview4_attention.py` green — it
+  checks outputs _and_ gradients against the upstream processor.
+- FSDP strategies **hard-error on non-CUDA** (`BaseTrainer._check_device_compat`).
+  QLoRA (`low_vram: true`) no longer does: the same guard now runs a real 4-bit round trip
+  on the target device (`finetune/utils/quantization.py`) and fails only when bitsandbytes
+  cannot actually quantize there. Keep it a capability check — a `sys.platform` test would
+  both lock out working Metal builds and pass on broken ones. `pyproject.toml` still leaves
+  bitsandbytes off the darwin dependency set (no published wheel); Apple Silicon needs a
+  source build with Metal kernels. The `BitsAndBytesConfig` in each `lora_trainer.py` must
+  stay lazily constructed inside the `low_vram` branch.
+- **The Metal bitsandbytes is Eric's fork at `~/Documents/dev/bitsandbytes`** — build with
+  `cmake -DCOMPUTE_BACKEND=mps -S . && make -j8` then `uv pip install -e . --no-build-isolation`
+  (two steps: `wheel.cmake = false`, so pip never re-runs cmake). Read its
+  `docs/apple_silicon/MPS_STATUS.md` before trusting anything about which ops are native.
+  **Both directions of the 4-bit matmul are now native for every dtype**, bf16 included
+  (`MPSMatrixMultiplication` has no bf16; `MPSGraph` does), and `MatMul4Bit.backward` is fused
+  rather than composing a dequant with a torch matmul. Measured on this lane vs the pre-native
+  baseline: forward −15.2%, backward −16.2%, step −15.3%. `BNB_MPS_REQUIRE_NATIVE=1` turns
+  silent fallbacks into hard failures; `BNB_MPS_DISABLE_BF16_GEMM` / `..._BWD` force the
+  fallback per direction, which is how the A/B above was run against one binary.
+- Inference placement is idempotent: `before_generation` short-circuits on
+  `_cogkit_load_type`, and the API service places the pipeline at startup rather than on the
+  first request. VAE slicing/tiling are `vae_slicing`/`vae_tiling` there and a
+  `vae_memory_saving` API setting, **defaulting on** -- off is ~17% faster warm but costs
+  21 GB of MPS driver allocation (`docs/benchmarks/APPLE_MPS_VAE_DECODE_2026-09-03.md`).
+  `None` means _leave the setting alone_: `generate_image`/`generate_video` forward only
+  `load_type`, so treating unset as "enable" silently resets an explicit setting every request.
+- Video _training_ is unsupported: torchvision ≥0.23 removed `VideoReader`, so the dataset
+  modules guard that import (type-annotation use only) and `cv2` is imported lazily. t2v/i2v
+  training fails loudly at use-time. Video _inference_ on MPS is a separate lane and works.
 - **Correctness rule:** bf16/fp16 on MPS can be silently wrong. A completed run is not
-  evidence — only CPU parity is (`tests/test_mps_cpu_parity.py`, heavy, needs cached
-  weights + the precompute cache). Unit lane tests: `tests/test_single_device_lane.py`.
+  evidence — only CPU parity is (`tests/test_mps_cpu_parity.py` for training,
+  `tests/test_inference_mps.py` for inference; both heavy, both need cached weights + the
+  precompute cache). Cheap unit lanes: `tests/test_single_device_lane.py`,
+  `tests/test_cogview4_attention.py`.
+- **SDPA has no fused MPS backward.** `attention.cpp` routes MPS to the fused kernel only when
+  grad is off, so training always runs the composite math path. Do not credit training with an
+  inference kernel win.
+- Timing on MPS needs wall clock plus an explicit `torch.mps.synchronize()` — `ProfilerActivity.MPS`
+  does not exist and `torch.mps.Event` timing is unreliable. See `finetune/utils/performance.py`.
+- **Benchmark discipline on this machine** (each of these has produced a wrong published number
+  here at least once):
+  - _Check the machine is idle first._ `uptime` — a VS Code file-scan storm has put load average
+    at 200–298, where a contended probe was not merely noisy but **reversed the winner** of an
+    A/B. A 64 MB `clone()` control should read ~0.30 ms (~427 GB/s) on an M4 Max; take it before
+    and after every table.
+  - _Never run arms in a fixed order._ Reversing arm order moved the same arm's step time by
+    −0.50 s to +0.64 s, as large as the effects being measured. Run half the reps reversed.
+  - _Get a free error bar from a stage the change cannot touch._ A switch that only affects the
+    forward should move the backward by 0%; whatever it does move it by is your noise floor
+    (~2–4% here). Report ranges, and treat n=2 as a rumour — an n=2 step delta of −7% with
+    "no overlap" became −3.7% with overlap at n=4.
+  - _Never compare across torch builds or days._ The 2.15 fork cut the CogVideo warm transformer
+    stage from 14.50 s to ~6 s, larger than most effects under test.
 - A dead torchrun can leave port 29501 held: `lsof -ti :29501 | xargs kill -9`.
 
 ## Conventions

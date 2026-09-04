@@ -11,13 +11,16 @@ authors = [{ name = 'ZhipuAI', email = 'opensource@zhipuai.cn' }]
 # maintainers = []
 dependencies = [
   "click~=8.1",
-  "diffusers @ git+https://github.com/huggingface/diffusers.git",
+  # Pinned: diffusers main moved to huggingface-hub>=1.26, which transformers 4.x caps
+  # below 1.0 — git-main no longer resolves against this dependency set on any Python.
+  "diffusers @ git+https://github.com/huggingface/diffusers.git@b8905b9b0f01d2df8738ae967d5c02c502f0d3e5",
   "imageio-ffmpeg~=0.6.0",
   "imageio~=2.37",
   # diffusers@git-main requires peft>=0.17
   "peft>=0.17.0",
   "pydantic~=2.10",
-  "sentencepiece==0.2.0",
+  # 0.2.0 ships no cp314 wheel; 0.2.2 does
+  "sentencepiece==0.2.2",
   "transformers~=4.49",
   "fastapi[standard]~=0.115.11",
   "fastapi_cli~=0.0.7",
@@ -30,10 +33,16 @@ dependencies = [
 
 [project.optional-dependencies]
 finetune = [
-  "datasets~=3.4",
+  # datasets<5 caps dill<0.3.9, and dill before 0.4.1 overrides pickle's
+  # _batch_setitems with the 2-arg signature Python 3.14 replaced.
+  "datasets~=5.0",
   "wandb~=0.19.8",
-  "av~=14.2.0",
-  # bitsandbytes is CUDA-only (no macOS/arm64 wheel); the QLoRA path guards against it on MPS
+  # 14.x ships no cp314 wheel; 15.1 does
+  "av~=15.1",
+  # No macOS/arm64 bitsandbytes wheel is published, so it stays off the darwin dependency
+  # set. QLoRA on Apple Silicon needs a source build with Metal kernels
+  # (`cmake -DCOMPUTE_BACKEND=mps -S . && make`, then `pip install -e .`); `low_vram` probes
+  # for a working 4-bit backend at trainer startup rather than testing sys.platform.
   "bitsandbytes~=0.45.4; sys_platform != 'darwin'",
   "pyyaml>=6.0.2",
 ]

@@ -1,9 +1,10 @@
-# Apple Silicon (MPS) single-device smoke/dev config — cogview4-6b LoRA.
-# Differences from config.yaml: strategy SINGLE, no dataloader workers (fork on
-# macOS), no pin_memory (CUDA-only), tiny in-repo dataset, no validation.
+# Apple Silicon (MPS) single-device QLoRA config — cogview4-6b, NF4 base weights.
+# Identical to config_mps.yaml except for `low_vram: true`. Requires a bitsandbytes
+# built with Metal kernels (`cmake -DCOMPUTE_BACKEND=mps -S . && make`); the trainer
+# probes for a working 4-bit backend at startup and fails there if it is missing.
 
 # ================ Logging ================
-name4train: "t2i-train-mps"
+name4train: "t2i-train-mps-qlora"
 log_level: "INFO"
 
 # ================ Model ================
@@ -11,7 +12,7 @@ model_name: "cogview4-6b"
 model_path: "THUDM/CogView4-6B"
 
 # ================ Output ================
-output_dir: "train_result_mps"
+output_dir: "train_result_mps_qlora"
 
 # ================ Tracker ================
 report_to: null
@@ -32,8 +33,9 @@ no_grad_sync_when_accumulating: false
 # See config.yaml — clear data_root/{train,test}/.cache when flipping this
 enable_packing: false
 
-# QLoRA/bitsandbytes is CUDA-only; must stay false on MPS
-low_vram: false
+# QLoRA: load the 6B base transformer as NF4 and train LoRA adapters on top.
+# low_vram checkpoints save LoRA weights only (no DCP), so resume is unavailable.
+low_vram: true
 
 # Recompute-free backward. Measured on an M4 Max 64 GB at 512x512 bf16 batch 1:
 # median step 10.46s -> 7.10s (-32%), backward 6.47s -> 2.94s, at the cost of MPS

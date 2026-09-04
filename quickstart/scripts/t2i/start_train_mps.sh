@@ -16,4 +16,4 @@ TORCHRUN="${TORCHRUN:-$REPO_ROOT/.venv/bin/torchrun}"
     --nproc_per_node=1 \
     --master_port=29501 \
     ../train.py \
-    --yaml config_mps.yaml
+    --yaml "${COGKIT_CONFIG:-config_mps.yaml}"

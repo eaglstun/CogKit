@@ -11,6 +11,7 @@ import pytest
 import torch
 from pydantic import ValidationError
 
+import cogkit.finetune.base.base_trainer as base_trainer_module
 from cogkit.finetune.base import BaseArgs
 from cogkit.finetune.base.base_trainer import BaseTrainer
 from cogkit.finetune.utils.dist import get_device
@@ -73,9 +74,15 @@ def test_fsdp_strategy_rejected_for_lora():
         BaseArgs(**_base_args(strategy="FULL_SHARD"))
 
 
-def test_low_vram_rejected_with_single():
+def test_low_vram_accepted_with_single():
+    # QLoRA needs no collective, so the single-device lane is a valid host for it.
+    args = BaseArgs(**_base_args(low_vram=True))
+    assert args.low_vram and args.strategy == "SINGLE"
+
+
+def test_low_vram_rejected_for_sft():
     with pytest.raises(ValidationError, match="low_vram"):
-        BaseArgs(**_base_args(low_vram=True))
+        BaseArgs(**_base_args(low_vram=True, training_type="sft", strategy="SINGLE"))
 
 
 def test_offload_params_grads_rejected_with_single():
@@ -95,10 +102,35 @@ def _fake_trainer(strategy: str, low_vram: bool, device: str) -> types.SimpleNam
     )
 
 
-def test_qlora_guard_errors_on_non_cuda():
-    fake = _fake_trainer(strategy="DDP", low_vram=True, device="cpu")
+def test_qlora_guard_errors_when_backend_unavailable(monkeypatch):
+    # The guard is now a capability check, not a platform check: it must fail when
+    # bitsandbytes cannot do 4-bit on this device, whatever the device is called.
+    monkeypatch.setattr(
+        base_trainer_module,
+        "require_bnb_4bit",
+        lambda device_type, *a, **k: (_ for _ in ()).throw(
+            ValueError(f"bitsandbytes is not installed for {device_type}")
+        ),
+    )
+    fake = _fake_trainer(strategy="SINGLE", low_vram=True, device="mps")
     with pytest.raises(ValueError, match="bitsandbytes"):
         BaseTrainer._check_device_compat(fake)
+
+
+def test_qlora_guard_passes_when_backend_available(monkeypatch):
+    monkeypatch.setattr(base_trainer_module, "require_bnb_4bit", lambda device_type, *a, **k: None)
+    fake = _fake_trainer(strategy="SINGLE", low_vram=True, device="mps")
+    BaseTrainer._check_device_compat(fake)
+
+
+def test_qlora_guard_does_not_probe_when_low_vram_off(monkeypatch):
+    # A bf16 run must never pay for (or trip over) the bitsandbytes probe.
+    def _explode(*a, **k):
+        raise AssertionError("require_bnb_4bit called with low_vram disabled")
+
+    monkeypatch.setattr(base_trainer_module, "require_bnb_4bit", _explode)
+    fake = _fake_trainer(strategy="SINGLE", low_vram=False, device="mps")
+    BaseTrainer._check_device_compat(fake)
 
 
 def test_fsdp_guard_errors_on_non_cuda():

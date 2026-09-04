@@ -15,6 +15,10 @@ class APISettings(BaseSettings):
 
     dtype: Literal["bfloat16", "float32"] = "bfloat16"
     offload_type: LoadType = "cpu_model_offload"
+    # VAE slicing + tiling. Defaults on because the server's memory budget is unknown;
+    # turn it off only on a host with known headroom. See
+    # docs/benchmarks/APPLE_MPS_VAE_DECODE_2026-09-03.md
+    vae_memory_saving: bool = True
 
     # cogview-4 related settings
     cogview4_path: str | None = None

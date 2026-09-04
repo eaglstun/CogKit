@@ -44,6 +44,7 @@ from ..utils import (
     is_main_process,
     list_files,
     mkdir,
+    require_bnb_4bit,
     TrainingProfiler,
 )
 
@@ -112,13 +113,22 @@ class BaseTrainer(ABC):
             torch.cuda.set_device(get_local_rank())
 
     def _check_device_compat(self) -> None:
-        # Must run before load_components: the low_vram path imports bitsandbytes (CUDA-only)
+        # Must run before load_components: the low_vram path quantizes during from_pretrained,
+        # so an unusable bitsandbytes must fail here, while the error is still legible.
         device_type = self.state.device.type
-        if device_type != "cuda" and self.uargs.low_vram:
-            raise ValueError(
-                f"low_vram (QLoRA via bitsandbytes NF4) requires CUDA and is not supported on "
-                f"'{device_type}'. Set `low_vram: false` and use `mixed_precision: bf16` instead."
-            )
+        if self.uargs.low_vram:
+            require_bnb_4bit(device_type)
+            if device_type == "cpu":
+                # bitsandbytes itself runs 4-bit on cpu, but diffusers' bnb quantizer
+                # rejects a cpu device_map outright, so the weights end up on whatever
+                # accelerate picks and the first matmul dies with a device mismatch far
+                # from here. There is no cpu QLoRA oracle to be had; say so up front.
+                raise ValueError(
+                    "low_vram (QLoRA) cannot run on 'cpu': the diffusers bitsandbytes "
+                    "quantizer refuses CPU placement, so the quantized weights would not "
+                    "land on the requested device. Use an accelerator, or set "
+                    "`low_vram: false` for a CPU run."
+                )
         if device_type != "cuda" and self.uargs.strategy != "SINGLE":
             raise ValueError(
                 f"strategy '{self.uargs.strategy}' (FSDP/DDP) requires CUDA and is not supported "
@@ -209,8 +219,11 @@ class BaseTrainer(ABC):
                 sharding_strategy = ShardingStrategy.HYBRID_SHARD
 
         if self.uargs.strategy == "SINGLE":
-            # Single-device lane (MPS/CPU or a lone GPU): no FSDP/DDP wrapping at all
-            self.components.transformer = self.components.transformer.to(self.state.device)
+            # Single-device lane (MPS/CPU or a lone GPU): no FSDP/DDP wrapping at all.
+            # low_vram already placed the quantized weights during from_pretrained; moving
+            # Params4bit again is not a no-op, so skip it exactly as the DDP branch does.
+            if not self.uargs.low_vram:
+                self.components.transformer = self.components.transformer.to(self.state.device)
         elif self.uargs.strategy != "DDP":
             warp_policy = partial(
                 size_based_auto_wrap_policy,

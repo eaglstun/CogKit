@@ -22,7 +22,8 @@ from diffusers import (
     CogView4Transformer2DModel,
     FlowMatchEulerDiscreteScheduler,
 )
-from diffusers.models.transformers.transformer_cogview4 import CogView4TrainingAttnProcessor
+
+from .attention import CogKitCogView4TrainingAttnProcessor
 
 
 class Cogview4Trainer(DiffusionTrainer):
@@ -59,7 +60,8 @@ class Cogview4Trainer(DiffusionTrainer):
                 torch_dtype=dtype,
             )
         else:
-            # constructing the config already requires bitsandbytes (CUDA-only), so build it lazily
+            # constructing the config already requires bitsandbytes, so build it lazily; the
+            # device compatibility check in BaseTrainer._check_device_compat has already run
             nf4_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_quant_type="nf4",
@@ -73,7 +75,7 @@ class Cogview4Trainer(DiffusionTrainer):
                 quantization_config=nf4_config,
                 device=self.state.device,
             )
-        replace_attn_processor(components.transformer, CogView4TrainingAttnProcessor())
+        replace_attn_processor(components.transformer, CogKitCogView4TrainingAttnProcessor())
 
         ### vae
         components.vae = AutoencoderKL.from_pretrained(

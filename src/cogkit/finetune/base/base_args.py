@@ -108,8 +108,9 @@ class BaseArgs(BaseModel):
             raise ValueError("low_vram can only be True when training_type is 'lora'")
         if v and info.data.get("offload_params_grads"):
             raise ValueError("low_vram and offload_params_grads cannot be enabled simultaneously")
-        if v and info.data.get("strategy") != "DDP":
-            raise ValueError("low_vram can only be used with strategy='DDP'")
+        if v and info.data.get("strategy") not in ("DDP", "SINGLE"):
+            # SINGLE is the single-device (MPS/CPU) lane; QLoRA needs no collective at all.
+            raise ValueError("low_vram can only be used with strategy='DDP' or 'SINGLE'")
         if v and info.data.get("resume_from_checkpoint") is not None:
             raise ValueError("resume_from_checkpoint cannot be used when low_vram is True")
         return v
