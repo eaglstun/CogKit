@@ -6,6 +6,16 @@ PyTorch build and the same venv on the same day, so the two columns are directly
 to each other — but **not** to the numbers in `APPLE_MPS_TRAINING_STEP_2026-09-03.md`, which
 were taken on torch 2.12.1.
 
+> [!NOTE]
+> **Superseded in part by `APPLE_MPS_4BIT_MATMUL_2026-09-03.md`.** The NF4 arm below predates the
+> native 4-bit matmul in the bitsandbytes Metal fork, so it measures the *fallback* configuration.
+> The absolute step times here are also off: this run's bf16 arm reads ~10% slow and its NF4 arm
+> ~7% fast against a later quiet-machine re-measurement, because part of that day the box sat at a
+> load average of 200–298. The two errors happened to cancel, so the +14.1% ratio survived — which
+> makes it easy to misread as "the native matmul changed nothing". It did not: measured
+> consistently on a quiet machine, native cuts the QLoRA step 15.3% and cuts QLoRA's overhead over
+> bf16 from +36% to +13.6%. **Take the ratio here, not the seconds.**
+
 **Headline: NF4 costs 14% step time and returns 70% of live MPS allocation.** On a 64 GB Mac
 that is a trade you take only when you need the memory; on a 16-24 GB Mac it is what makes
 the workload fit at all.

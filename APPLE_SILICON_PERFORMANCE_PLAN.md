@@ -249,3 +249,29 @@ silently re-enabled tiling on every request. The harness now records the VAE fla
 **Step 5's premise is retired.** The Step 1 profile measures data wait at 0.0092-0.015 s, 0.2% of
 a training step. Decoupling the dataset from model objects may still be worth doing for `spawn`
 correctness, but not as a performance step.
+
+### Supporting measurement — native 4-bit matmul (bitsandbytes Metal) — 2026-09-03
+
+Not one of the numbered steps: the change is in the bitsandbytes fork at
+`~/Documents/dev/bitsandbytes` (upstream PR #2070), not in CogKit. Recorded here because it moves
+this lane's QLoRA step more than any CogKit-side step has.
+
+Both directions of the 4-bit matmul now run native Metal for bf16 — the forward through `MPSGraph`
+(`MPSMatrixMultiplication` has no bf16 path), the backward through a new fused
+`gemm_4bit_backward` op replacing the dequant + `torch.matmul` composition that
+`MatMul4Bit.backward` ran inline.
+
+**QLoRA step 9.394 s -> 7.960 s (-15.3%)**; forward -15.2%, backward -16.2%. Three arms, n=6 each,
+half the reps with the arm order reversed, toggled in place against one binary via
+`BNB_MPS_DISABLE_BF16_GEMM` / `..._BWD`. Stages the switches cannot affect moved 1.8-3.9%, which is
+the noise floor the effects are measured against. Re-measured head to head on the same quiet
+machine, QLoRA now costs **+13.6% step over bf16 LoRA for -70.3% live MPS allocation**, down from
++36% before. Full record: `docs/benchmarks/APPLE_MPS_4BIT_MATMUL_2026-09-03.md`.
+
+Two methodology notes earned the hard way and applied to every table since:
+
+- **A contended machine can reverse an A/B, not merely blur it.** A probe taken at load average
+  ~230 had MPSGraph bf16 beating MPSMatrixMultiplication fp16 2.33 ms to 3.84 ms; quiet, the same
+  probe reads 1.183 vs 1.081 — both ~2x faster and the winner flipped.
+- **Never run benchmark arms in a fixed order.** Reversing the order moved the same arm's step time
+  by -0.50 s to +0.64 s, comparable to the effect under test.
